@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Daily Thesis Privacy Policy</title>
+    <style>
+      :root {
+        --bg: #fbf9f6;
+        --panel: rgba(255, 255, 255, 0.72);
+        --panel-strong: rgba(255, 255, 255, 0.9);
+        --text: #1c1c1e;
+        --muted: #5c5c66;
+        --line: rgba(28, 28, 30, 0.12);
+        --accent: #111625;
+        --accent-soft: rgba(17, 22, 37, 0.08);
+        --shadow: 0 24px 80px rgba(17, 22, 37, 0.08);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0f1115;
+          --panel: rgba(22, 26, 33, 0.78);
+          --panel-strong: rgba(22, 26, 33, 0.94);
+          --text: #f4f5f7;
+          --muted: #b3bac7;
+          --line: rgba(244, 245, 247, 0.12);
+          --accent: #f4f5f7;
+          --accent-soft: rgba(244, 245, 247, 0.08);
+          --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background:
+          radial-gradient(
+            circle at top left,
+            rgba(17, 22, 37, 0.08),
+            transparent 34%
+          ),
+          radial-gradient(
+            circle at top right,
+            rgba(17, 22, 37, 0.05),
+            transparent 30%
+          ),
+          var(--bg);
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        color: var(--text);
+        line-height: 1.6;
+        background: transparent;
+      }
+
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+        padding: 48px 20px 72px;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: linear-gradient(180deg, var(--panel-strong), var(--panel));
+        box-shadow: var(--shadow);
+        padding: 34px;
+        margin-bottom: 22px;
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 18px 0 10px;
+        font-size: clamp(2.4rem, 5vw, 4.6rem);
+        line-height: 0.96;
+        letter-spacing: -0.05em;
+      }
+
+      .lead {
+        max-width: 70ch;
+        margin: 0;
+        font-size: 1.06rem;
+        color: var(--muted);
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 22px;
+      }
+
+      .meta-card {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 14px 16px;
+        background: rgba(255, 255, 255, 0.26);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .meta-card {
+          background: rgba(255, 255, 255, 0.03);
+        }
+      }
+
+      .meta-card .label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .meta-card strong {
+        font-size: 0.98rem;
+        color: var(--text);
+      }
+
+      .content {
+        display: grid;
+        gap: 16px;
+      }
+
+      .section {
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: var(--panel);
+        padding: 24px;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+      }
+
+      h2 {
+        margin: 0 0 10px;
+        font-size: 1.18rem;
+        letter-spacing: -0.02em;
+      }
+
+      p {
+        margin: 0 0 12px;
+      }
+      p:last-child {
+        margin-bottom: 0;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      li {
+        margin: 6px 0;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .footer {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 0.95rem;
+        text-align: center;
+      }
+
+      @media (max-width: 720px) {
+        .wrap {
+          padding: 22px 14px 36px;
+        }
+        .hero,
+        .section {
+          padding: 20px;
+          border-radius: 22px;
+        }
+        .meta {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="hero" aria-labelledby="title">
+        <div class="eyebrow">Daily Thesis</div>
+        <h1 id="title">Privacy Policy</h1>
+        <p class="lead">
+          Daily Thesis is designed to keep your reading experience local,
+          minimal, and private. This page explains what data the app stores,
+          what it sends over the network, and what it does not do.
+        </p>
+
+        <div class="meta" role="list" aria-label="Policy summary">
+          <div class="meta-card" role="listitem">
+            <span class="label">Last updated</span>
+            <strong>July 1, 2026</strong>
+          </div>
+          <div class="meta-card" role="listitem">
+            <span class="label">Data stored</span>
+            <strong>On device only</strong>
+          </div>
+          <div class="meta-card" role="listitem">
+            <span class="label">Contact</span>
+            <strong>sahil@example.com</strong>
+          </div>
+        </div>
+      </section>
+
+      <div class="content">
+        <section class="section">
+          <h2>What Daily Thesis stores</h2>
+          <p>
+            The app stores a small amount of information locally on your device
+            so it can personalize recommendations and remember your preferences.
+          </p>
+          <ul>
+            <li>
+              Your name, if you enter it during onboarding or in Settings.
+            </li>
+            <li>Your selected interests and matched subject categories.</li>
+            <li>
+              Your theme preference, including System, Light, or Dark mode.
+            </li>
+            <li>
+              Your paper history, so you can revisit previously recommended
+              papers.
+            </li>
+          </ul>
+        </section>
+
+        <section class="section">
+          <h2>What the app sends</h2>
+          <p>
+            Daily Thesis makes network requests to fetch paper recommendations
+            from its paper service. If you choose interests, the app may include
+            a subject parameter so it can return a more relevant paper.
+          </p>
+          <p>
+            The app may also open external links when you tap a paper, cite, or
+            share a recommendation. Those actions use Apple system services or
+            third-party apps you choose.
+          </p>
+        </section>
+
+        <section class="section">
+          <h2>What Daily Thesis does not do</h2>
+          <ul>
+            <li>It does not require an account.</li>
+            <li>It does not sell your personal information.</li>
+            <li>It does not use your data for advertising.</li>
+            <li>It does not store your reading history on a company server.</li>
+          </ul>
+        </section>
+
+        <section class="section">
+          <h2>Third-party services</h2>
+          <p>
+            Daily Thesis relies on external paper sources and standard platform
+            services for opening links, sharing content, and storing local
+            preferences. Those services may have their own privacy policies and
+            terms.
+          </p>
+        </section>
+
+        <section class="section">
+          <h2>Children’s privacy</h2>
+          <p>
+            Daily Thesis is not directed to children under 13, and it does not
+            knowingly collect personal information from children.
+          </p>
+        </section>
+
+        <section class="section">
+          <h2>Changes to this policy</h2>
+          <p>
+            This policy may be updated occasionally to reflect product or legal
+            changes. The latest version will always be published at this URL.
+          </p>
+        </section>
+
+        <section class="section">
+          <h2>Contact</h2>
+          <p>
+            If you have questions about this policy or the app’s privacy
+            practices, contact
+            <a href="mailto:sahil@example.com">sahil@example.com</a>.
+          </p>
+        </section>
+      </div>
+
+      <p class="footer">Daily Thesis • Privacy Policy</p>
+    </main>
+  </body>
+</html>
