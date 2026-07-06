@@ -4,9 +4,11 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/paper.dart';
 import '../models/user_profile.dart';
+import '../services/ad_service.dart';
 import '../services/paper_history_storage.dart';
 import '../services/paper_service.dart';
 import '../services/profile_storage.dart';
+import '../widgets/banner_ad_widget.dart';
 import '../widgets/shimmer_loader.dart';
 import '../widgets/reveal.dart';
 import '../widgets/press_button.dart';
@@ -80,6 +82,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         isLoading = false;
       });
       _revealContent();
+      AdService.instance.maybeShowInterstitial();
     } on Exception catch (e) {
       _setErrorState('Connection Error', e.toString());
     } finally {
@@ -302,6 +305,10 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
             ),
           ),
         ),
+      ),
+      bottomNavigationBar: const SafeArea(
+        top: false,
+        child: BannerAdWidget(),
       ),
     );
   }

@@ -11,6 +11,8 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+admob-integration.patch
+apply-admob-integration.sh
 
 # IntelliJ related
 *.iml
@@ -18,10 +20,39 @@ migrate_working_dir/
 *.iws
 .idea/
 
+# VS Code
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
 #.vscode/
+
+# Xcode related
+**/ios/Runner.xcworkspace/xcuserdata/
+**/macos/Runner.xcworkspace/xcuserdata/
+**/*.xcodeproj/xcuserdata/
+**/*.xcodeproj/project.xcworkspace/xcuserdata/
+DerivedData/
+*.xcuserstate
+
+# CocoaPods
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/macos/Pods/
+**/macos/Flutter/ephemeral/
+Podfile.lock
+
+# Android signing / local config
+**/android/key.properties
+**/android/local.properties
+**/android/**/*.jks
+**/android/**/*.keystore
+
+# Environment / secrets
+.env
+.env.*.local
+.env.local
 
 # Flutter/Dart/Pub related
 **/doc/api/

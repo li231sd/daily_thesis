@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/paper_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'services/ad_service.dart';
 import 'services/profile_storage.dart';
 import 'services/theme_mode_storage.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
   await ThemeModeController.instance.load();
+  await AdService.instance.initialize();
   runApp(const DailyThesisApp());
 }
 

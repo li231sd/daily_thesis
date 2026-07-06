@@ -30,6 +30,14 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- AdMob App ID. Required or the app crashes on launch once
+             google_mobile_ads is added. Get this from AdMob > Apps > Daily
+             Thesis > App settings (format ca-app-pub-...~...), NOT an ad
+             unit ID (which uses "/" instead of "~"). -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3594022709032834~2984996801" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
