@@ -17,9 +17,14 @@ class AdService {
   bool _isLoadingInterstitial = false;
   int _fetchCountSinceLastInterstitial = 0;
 
-  /// Ads only run on Android/iOS. Web and desktop builds no-op everywhere.
+  // TEMPORARY: flip to true to re-enable ads. While this is false, every
+  // ad code path (banner, interstitial, initialization) no-ops, since they
+  // all already gate on isSupportedPlatform below.
+  static const bool _adsEnabledForNow = false;
+
+  /// Ads only run on Android/iOS, and only while [_adsEnabledForNow] is true.
   bool get isSupportedPlatform =>
-      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+      _adsEnabledForNow && !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   String get bannerAdUnitId =>
       dotenv.env['PaperScreen_Banner'] ?? _testBannerId;
