@@ -4,11 +4,9 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/paper.dart';
 import '../models/user_profile.dart';
-import '../services/ad_service.dart';
 import '../services/paper_history_storage.dart';
 import '../services/paper_service.dart';
 import '../services/profile_storage.dart';
-import '../widgets/banner_ad_widget.dart';
 import '../widgets/shimmer_loader.dart';
 import '../widgets/reveal.dart';
 import '../widgets/press_button.dart';
@@ -83,7 +81,6 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         isLoading = false;
       });
       _revealContent();
-      AdService.instance.maybeShowInterstitial();
     } on Exception catch (e) {
       _setErrorState('Connection Error', e.toString());
     } finally {
@@ -253,6 +250,44 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
     );
   }
 
+  Future<void> _discussWithChatGPT() async {
+    final paper = _paper;
+    if (paper == null || hasError) return;
+    HapticFeedback.lightImpact();
+
+    // Keep the abstract short enough that the resulting URL stays well
+    // under common browser/webview length limits (~2000 chars).
+    const maxAbstractChars = 1200;
+    var abstract = paper.abstract;
+    if (abstract.length > maxAbstractChars) {
+      abstract = '${abstract.substring(0, maxAbstractChars)}...';
+    }
+
+    final promptBuffer = StringBuffer()
+      ..writeln('Can you explain this paper in plain language and walk me through its key contributions?')
+      ..writeln()
+      ..writeln('Title: ${paper.title}');
+    if (paper.authors.isNotEmpty) {
+      promptBuffer.writeln('Authors: ${paper.authors}');
+    }
+    promptBuffer
+      ..writeln('Abstract: $abstract')
+      ..write('Link: ${paper.url}');
+
+    // chatgpt.com supports a `q` query param that pre-fills the message
+    // box. It does NOT reliably auto-send (OpenAI added anti-abuse
+    // protections around that after it was used for prompt-injection
+    // link attacks), so this opens ChatGPT with the prompt ready to
+    // review and send, not already sent.
+    final uri = Uri.https('chatgpt.com', '/', {'q': promptBuffer.toString()});
+
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open ChatGPT')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
@@ -310,10 +345,6 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
             ),
           ),
         ),
-      ),
-      bottomNavigationBar: const SafeArea(
-        top: false,
-        child: BannerAdWidget(),
       ),
     );
   }
@@ -556,6 +587,37 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Reveal(
+            delay: const Duration(milliseconds: 360),
+            child: PressButton(
+              onPressed: _discussWithChatGPT,
+              child: Container(
+                width: double.infinity,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: palette.buttonSecondary,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: palette.buttonSecondaryBorder),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.chat_bubble_outline_rounded, size: 16, color: palette.buttonSecondaryText),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Discuss with ChatGPT',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: palette.buttonSecondaryText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],

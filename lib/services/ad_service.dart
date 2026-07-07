@@ -20,7 +20,7 @@ class AdService {
   // TEMPORARY: flip to true to re-enable ads. While this is false, every
   // ad code path (banner, interstitial, initialization) no-ops, since they
   // all already gate on isSupportedPlatform below.
-  static const bool _adsEnabledForNow = false;
+  static const bool _adsEnabledForNow = false; // TODO: If needed
 
   /// Ads only run on Android/iOS, and only while [_adsEnabledForNow] is true.
   bool get isSupportedPlatform =>
