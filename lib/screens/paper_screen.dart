@@ -12,6 +12,7 @@ import '../widgets/reveal.dart';
 import '../widgets/press_button.dart';
 import '../widgets/citation_badge.dart';
 import '../widgets/arxiv_disclaimer.dart';
+import '../widgets/math_text.dart';
 import '../theme/app_theme.dart';
 import 'history_screen.dart';
 import 'settings_screen.dart';
@@ -109,8 +110,12 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
     if (url != null && url.isNotEmpty) {
       HapticFeedback.lightImpact();
       final uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      final launchUri = uri.hasScheme ? uri : Uri.parse('https://$url');
+
+      if (!await launchUrl(launchUri, mode: LaunchMode.externalApplication) && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open the publication link')),
+        );
       }
     }
   }
@@ -249,6 +254,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
     return Scaffold(
+      backgroundColor: palette.background,
       appBar: AppBar(
         backgroundColor: palette.background,
         surfaceTintColor: Colors.transparent,
@@ -266,10 +272,9 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         title: Text(
           'DAILY THESIS',
           style: TextStyle(
-            fontFamily: '-apple-system',
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w700,
             letterSpacing: 2.5,
-            fontSize: 13,
+            fontSize: 11,
             color: palette.textPrimary,
           ),
         ),
@@ -332,18 +337,23 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         ),
         const SizedBox(height: 16),
 
-        // ── Title ─────────────────────────────────────────────────────────
+        // ── Title (LaTeX-aware, no WebView) ───────────────────────────────
         Reveal(
           delay: const Duration(milliseconds: 60),
-          child: Text(
+          child: MathText(
             hasError ? errorTitle : (paper?.title ?? ''),
-            style: Theme.of(context).textTheme.displaySmall,
+            style: TextStyle(
+              fontFamily: 'Georgia',
+              fontWeight: FontWeight.w700,
+              fontSize: 28,
+              color: palette.textPrimary,
+            ),
           ),
         ),
 
         // ── Authors ───────────────────────────────────────────────────────
         if (!hasError && paper != null && paper.authors.isNotEmpty) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Reveal(
             delay: const Duration(milliseconds: 120),
             child: Text(
@@ -385,7 +395,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         Reveal(
           delay: const Duration(milliseconds: 240),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 32.0),
+            padding: const EdgeInsets.symmetric(vertical: 28.0),
             child: Divider(
               height: 1,
               thickness: 0.75,
@@ -394,14 +404,17 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
           ),
         ),
 
-        // ── Abstract ──────────────────────────────────────────────────────
+        // ── Abstract (LaTeX-aware, no WebView) ─────────────────────────────
         Reveal(
           delay: const Duration(milliseconds: 300),
-          child: Text(
+          child: MathText(
             hasError ? errorMessage : (paper?.abstract ?? ''),
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: hasError ? palette.danger : palette.textPrimary,
-                ),
+            style: TextStyle(
+              color: palette.textPrimary,
+              fontSize: 16,
+              height: 1.65,
+              fontWeight: FontWeight.w400,
+            ),
           ),
         ),
 

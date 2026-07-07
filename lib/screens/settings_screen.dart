@@ -67,7 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     await _storage.save(updated);
-    HapticFeedback.mediumImpact();
+    HapticFeedback.lightImpact(); // Cleaner tactical snap for premium apps
     widget.onSaved();
     if (mounted) Navigator.of(context).pop();
   }
@@ -75,7 +75,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
-    final canSave = _selectedInterests.isNotEmpty;
+    final canSave = _selectedInterests.isNotEmpty && _nameController.text.trim().isNotEmpty;
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -83,117 +83,145 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: palette.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: palette.textPrimary),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(
           'SETTINGS',
           style: TextStyle(
-            fontFamily: '-apple-system',
-            fontWeight: FontWeight.w800,
-            letterSpacing: 2.0,
-            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2.5,
+            fontSize: 11,
             color: palette.textPrimary,
           ),
         ),
         centerTitle: true,
+        actions: [
+          // Premium editorial pattern: Save button is elegantly integrated into the header bar
+          TextButton(
+            onPressed: canSave ? _save : null,
+            child: Text(
+              'Save',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: canSave ? palette.textPrimary : palette.textTertiary.withValues(alpha: 0.5),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+        ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(28, 16, 28, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --- NAME SECTION ---
-              Text(
-                "NAME",
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: palette.textTertiary, letterSpacing: 1.2),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _nameController,
-                style: TextStyle(fontSize: 17, color: palette.textPrimary),
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                  border: UnderlineInputBorder(borderSide: BorderSide(color: palette.border)),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: palette.border)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: palette.textPrimary)),
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(32, 24, 32, 0),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // --- NAME SECTION ---
+                    Text(
+                      "NAME",
+                      style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: palette.textTertiary, letterSpacing: 2.0),
+                    ),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: _nameController,
+                      style: TextStyle(fontSize: 18, color: palette.textPrimary, letterSpacing: -0.2),
+                      onChanged: (_) => setState(() {}), // Keeps save state validation real-time
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        border: UnderlineInputBorder(borderSide: BorderSide(color: palette.border)),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: palette.border)),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: palette.textPrimary)),
+                      ),
+                    ),
+                    const SizedBox(height: 36),
+
+                    // --- APPEARANCE SECTION ---
+                    Text(
+                      'APPEARANCE',
+                      style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: palette.textTertiary, letterSpacing: 2.0),
+                    ),
+                    const SizedBox(height: 16),
+                    Row( // Row layout offers cleaner visual rhythm than Wrap for 3 standard options
+                      children: [
+                        Expanded(
+                          child: _ThemeChoice(
+                            label: 'System',
+                            selected: _themeMode == ThemeMode.system,
+                            onTap: () => _setThemeMode(ThemeMode.system),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _ThemeChoice(
+                            label: 'Light',
+                            selected: _themeMode == ThemeMode.light,
+                            onTap: () => _setThemeMode(ThemeMode.light),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _ThemeChoice(
+                            label: 'Dark',
+                            selected: _themeMode == ThemeMode.dark,
+                            onTap: () => _setThemeMode(ThemeMode.dark),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 40),
+
+                    // --- INTERESTS SECTION TITLE ---
+                    Text(
+                      "INTERESTS",
+                      style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: palette.textTertiary, letterSpacing: 2.0),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                 ),
               ),
+            ),
 
-              const SizedBox(height: 28),
-
-              Text(
-                'APPEARANCE',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: palette.textTertiary, letterSpacing: 1.2),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _ThemeChoice(
-                    label: 'System',
-                    selected: _themeMode == ThemeMode.system,
-                    onTap: () => _setThemeMode(ThemeMode.system),
-                  ),
-                  _ThemeChoice(
-                    label: 'Light',
-                    selected: _themeMode == ThemeMode.light,
-                    onTap: () => _setThemeMode(ThemeMode.light),
-                  ),
-                  _ThemeChoice(
-                    label: 'Dark',
-                    selected: _themeMode == ThemeMode.dark,
-                    onTap: () => _setThemeMode(ThemeMode.dark),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 28),
-              
-              // --- INTERESTS SECTION ---
-              Text(
-                "INTERESTS",
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: palette.textTertiary, letterSpacing: 1.2),
-              ),
-              const SizedBox(height: 16),
-              
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: InterestPicker(
-                    selectedLabels: _selectedInterests,
-                    onToggle: _toggleInterest,
-                  ),
-                ),
-              ),
-              
-              // --- BUTTON SECTION ---
-              const SizedBox(height: 24),
-              PressButton(
-                onPressed: canSave ? _save : () {},
-                child: Container(
-                  width: double.infinity,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: canSave
-                        ? palette.buttonPrimary
-                        : palette.buttonPrimary.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text(
-                      "Save Changes",
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: palette.buttonPrimaryText),
+            // --- INTERESTS PICKER SCROLL ZONE ---
+            SliverFillRemaining(
+              hasScrollBody: true,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: ShaderMask(
+                  shaderCallback: (Rect bounds) {
+                    return LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: const [Colors.transparent, Colors.white, Colors.white, Colors.transparent],
+                      stops: const [0.0, 0.04, 0.92, 1.0],
+                    ).createShader(bounds);
+                  },
+                  blendMode: BlendMode.dstIn,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: InterestPicker(
+                      selectedLabels: _selectedInterests,
+                      onToggle: _toggleInterest,
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
+// ─── Refined Premium Segment Chips ──────────────────────────────────────────
 
 class _ThemeChoice extends StatelessWidget {
   final String label;
@@ -209,24 +237,27 @@ class _ThemeChoice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
-    return GestureDetector(
-      onTap: onTap,
+    return PressButton( // Integrated PressButton wrapper for fluid tactile response on change
+      onPressed: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? palette.chipSelectedBackground : palette.chipUnselectedBackground,
-          borderRadius: BorderRadius.circular(18),
+          color: selected ? palette.textPrimary : Colors.transparent, // Solid minimalism change
+          borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: selected ? palette.chipSelectedBorder : palette.chipUnselectedBorder,
+            color: selected ? palette.textPrimary : palette.border,
+            width: 1,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: selected ? palette.chipSelectedText : palette.chipUnselectedText,
+            color: selected ? palette.background : palette.textSecondary,
           ),
         ),
       ),
