@@ -6,6 +6,10 @@ import 'interest_matcher.dart';
 class PaperService {
   static const String _workerUrl =
       'https://quiet-bread-7971.li231sdyt.workers.dev/';
+  static const List<String> _fallbackSubjects = [
+    'computer-science',
+    'medicine',
+  ];
 
   /// Fetches today's paper. If the user has multiple matched subjects,
   /// rotates deterministically through them by day (see
@@ -16,31 +20,50 @@ class PaperService {
         ? null
         : InterestMatcher.subjectForToday(matchedSubjects);
 
-    final uri = subject != null
-        ? Uri.parse('$_workerUrl?subject=$subject')
-        : Uri.parse(_workerUrl);
+    final candidateSubjects = <String?>[
+      subject,
+      ..._fallbackSubjects.where((candidate) => candidate != subject),
+      null,
+    ];
 
-    final response = await http.get(uri).timeout(const Duration(seconds: 20));
+    Exception? lastError;
 
-    if (response.statusCode != 200) {
-      throw Exception('Server returned ${response.statusCode}');
+    for (final candidate in candidateSubjects) {
+      try {
+        final uri = candidate != null
+            ? Uri.parse('$_workerUrl?subject=$candidate')
+            : Uri.parse(_workerUrl);
+
+        final response = await http.get(uri).timeout(const Duration(seconds: 20));
+
+        if (response.statusCode != 200) {
+          lastError = Exception('Server returned ${response.statusCode}');
+          continue;
+        }
+
+        final decoded = jsonDecode(response.body);
+        final results = switch (decoded) {
+          List<dynamic> items => items,
+          Map<String, dynamic> json =>
+            (json['data'] as List<dynamic>?) ?? const [],
+          _ => const [],
+        };
+
+        if (results.isEmpty) {
+          lastError = Exception('No papers found for ${candidate ?? 'all subjects'}');
+          continue;
+        }
+
+        final today = DateTime.now();
+        final index =
+            (today.year * 365 + today.month * 30 + today.day) % results.length;
+
+        return Paper.fromJson(results[index] as Map<String, dynamic>);
+      } on Exception catch (e) {
+        lastError = e;
+      }
     }
 
-    final decoded = jsonDecode(response.body);
-    final results = switch (decoded) {
-      List<dynamic> items => items,
-      Map<String, dynamic> json => (json['data'] as List<dynamic>?) ?? const [],
-      _ => const [],
-    };
-
-    if (results.isEmpty) {
-      throw Exception('No papers found');
-    }
-
-    final today = DateTime.now();
-    final index =
-        (today.year * 365 + today.month * 30 + today.day) % results.length;
-
-    return Paper.fromJson(results[index] as Map<String, dynamic>);
+    throw lastError ?? Exception('No papers found');
   }
 }
