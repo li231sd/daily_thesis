@@ -255,8 +255,6 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
     if (paper == null || hasError) return;
     HapticFeedback.lightImpact();
 
-    // Keep the abstract short enough that the resulting URL stays well
-    // under common browser/webview length limits (~2000 chars).
     const maxAbstractChars = 1200;
     var abstract = paper.abstract;
     if (abstract.length > maxAbstractChars) {
@@ -274,11 +272,6 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
       ..writeln('Abstract: $abstract')
       ..write('Link: ${paper.url}');
 
-    // chatgpt.com supports a `q` query param that pre-fills the message
-    // box. It does NOT reliably auto-send (OpenAI added anti-abuse
-    // protections around that after it was used for prompt-injection
-    // link attacks), so this opens ChatGPT with the prompt ready to
-    // review and send, not already sent.
     final uri = Uri.https('chatgpt.com', '/', {'q': promptBuffer.toString()});
 
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication) && mounted) {
@@ -375,7 +368,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         ),
         const SizedBox(height: 16),
 
-        // ── Title (LaTeX-aware, no WebView) ───────────────────────────────
+        // ── Title ────────────────────────────────────────────────────────
         Reveal(
           delay: const Duration(milliseconds: 60),
           child: MathText(
@@ -442,7 +435,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
           ),
         ),
 
-        // ── Abstract (LaTeX-aware, no WebView) ─────────────────────────────
+        // ── Abstract ─────────────────────────────────────────────────────
         Reveal(
           delay: const Duration(milliseconds: 300),
           child: MathText(
@@ -533,12 +526,14 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
             ),
           ),
 
+        // ── Action Grid Row (Cite, Share, Discuss) ────────────────────────
         if (!hasError && paper != null) ...[
           const SizedBox(height: 24),
           Reveal(
             delay: const Duration(milliseconds: 330),
             child: Row(
               children: [
+                // ── Cite ──
                 Expanded(
                   child: PressButton(
                     onPressed: _copyCitation,
@@ -549,20 +544,27 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: palette.buttonSecondaryBorder),
                       ),
-                      child: Center(
-                        child: Text(
-                          'Cite',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: palette.buttonSecondaryText,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.format_quote_rounded, size: 14, color: palette.buttonSecondaryText),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Cite',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: palette.buttonSecondaryText,
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
+
+                // ── Share ──
                 Expanded(
                   child: PressButton(
                     onPressed: _sharePaper,
@@ -573,51 +575,56 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: palette.buttonSecondaryBorder),
                       ),
-                      child: Center(
-                        child: Text(
-                          'Share',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: palette.buttonSecondaryText,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.ios_share_rounded, size: 14, color: palette.buttonSecondaryText),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Share',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: palette.buttonSecondaryText,
+                            ),
                           ),
-                        ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // ── Discuss with AI ──
+                Expanded(
+                  child: PressButton(
+                    onPressed: _discussWithChatGPT,
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: palette.buttonSecondary,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: palette.buttonSecondaryBorder),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.chat_bubble_outline_rounded, size: 14, color: palette.buttonSecondaryText),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Discuss',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: palette.buttonSecondaryText,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
               ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Reveal(
-            delay: const Duration(milliseconds: 360),
-            child: PressButton(
-              onPressed: _discussWithChatGPT,
-              child: Container(
-                width: double.infinity,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: palette.buttonSecondary,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: palette.buttonSecondaryBorder),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.chat_bubble_outline_rounded, size: 16, color: palette.buttonSecondaryText),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Discuss with ChatGPT',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: palette.buttonSecondaryText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
           ),
         ],
