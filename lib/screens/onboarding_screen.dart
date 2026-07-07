@@ -23,13 +23,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   final Set<String> _selectedInterests = {};
   final _storage = ProfileStorage();
 
-  // Single animation controller drives everything per step.
-  // We reset and re-run it on each transition.
   late AnimationController _fadeCtrl;
   late Animation<double> _opacity;
   late Animation<Offset> _slide;
-
-  // Checkmark draw controller — only used on the confirm step.
   late AnimationController _checkCtrl;
 
   @override
@@ -42,7 +38,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
     _opacity = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
     _slide = Tween<Offset>(
-      begin: const Offset(0, 0.04),
+      begin: const Offset(0, 0.03), // Slightly reduced for a premium, subtle glide
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut));
 
@@ -51,7 +47,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       duration: const Duration(milliseconds: 700),
     );
 
-    // Fade in the first step on mount.
     _fadeCtrl.forward();
   }
 
@@ -64,7 +59,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Future<void> _transitionTo(_Step next) async {
-    // Fade out current step.
     await _fadeCtrl.reverse();
     if (!mounted) return;
 
@@ -72,7 +66,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
     setState(() => _step = next);
 
-    // On confirm step, play checkmark then auto-advance.
     if (next == _Step.confirm) {
       _fadeCtrl.forward();
       await Future.delayed(const Duration(milliseconds: 200));
@@ -121,8 +114,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     widget.onComplete();
   }
 
-  // ─── Wraps every step in the shared fade+slide envelope ───────────────────
-
   Widget _envelope({required Widget child}) {
     return FadeTransition(
       opacity: _opacity,
@@ -142,9 +133,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _Eyebrow('WELCOME'),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             _Headline('What should\nwe call you?'),
-            const SizedBox(height: 36),
+            const SizedBox(height: 40),
             TextField(
               controller: _nameController,
               autofocus: true,
@@ -178,7 +169,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         ),
       );
 
-  // ─── Step: name confirmed (checkmark moment) ──────────────────────────────
+  // ─── Step: name confirmed ─────────────────────────────────────────────────
 
   Widget _confirmStep() => _envelope(
         child: Column(
@@ -202,7 +193,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 fontSize: 24,
                 fontWeight: FontWeight.w600,
                 color: AppPalette.of(context).textPrimary,
-                height: 1.35,
+                height: 1.4,
                 letterSpacing: -0.3,
               ),
             ),
@@ -210,41 +201,62 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         ),
       );
 
-  // ─── Step: pick interests ─────────────────────────────────────────────────
+  // ─── Step: pick interests (Optimized Layout) ──────────────────────────────
 
   Widget _interestsStep() => _envelope(
         child: Column(
           key: const ValueKey('interests'),
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 24),
+            const SizedBox(height: 40), // Pushes content down elegantly from SafeArea
             _Eyebrow('PERSONALIZE'),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             _Headline('What do you\nlike to read about?'),
-            const SizedBox(height: 8),
-            const Text(
+            const SizedBox(height: 12),
+            Text(
               'Pick as many as you like.',
               style: TextStyle(
                 fontSize: 15,
                 height: 1.4,
+                color: AppPalette.of(context).textSecondary,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 20),
+            
+            // Scrollable area featuring an editorial shader-fade effect
             Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: InterestPicker(
-                  selectedLabels: _selectedInterests,
-                  onToggle: _toggleInterest,
+              child: ShaderMask(
+                shaderCallback: (Rect bounds) {
+                  return LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: const [
+                      Colors.transparent, 
+                      Colors.white, 
+                      Colors.white, 
+                      Colors.transparent
+                    ],
+                    stops: const [0.0, 0.04, 0.94, 1.0],
+                  ).createShader(bounds);
+                },
+                blendMode: BlendMode.dstIn,
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(vertical: 20), // Keeps chips from clipping near edges
+                  child: InterestPicker(
+                    selectedLabels: _selectedInterests,
+                    onToggle: _toggleInterest,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            
+            const SizedBox(height: 24),
             _PrimaryButton(
               label: 'Get Started',
               onPressed: _selectedInterests.isEmpty ? null : _finish,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24), // Extra bottom padding for clean UI anchoring
           ],
         ),
       );
@@ -258,7 +270,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _Eyebrow('ALL SET'),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             _Headline('Your daily\nthesis awaits.'),
           ],
         ),
@@ -290,9 +302,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
+            constraints: const BoxConstraints(maxWidth: 440), // Snugger width yields premium editorial readability
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 36),
+              padding: const EdgeInsets.symmetric(horizontal: 40), // Increased margins for enhanced luxury negative space
               child: body,
             ),
           ),
@@ -302,7 +314,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 }
 
-// ─── Shared small components ──────────────────────────────────────────────────
+// ─── Shared Premium Small Components ──────────────────────────────────────────
 
 class _Eyebrow extends StatelessWidget {
   final String text;
@@ -312,10 +324,10 @@ class _Eyebrow extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         text,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: 10.5,
           fontWeight: FontWeight.w700,
           color: AppPalette.of(context).textTertiary,
-          letterSpacing: 2.0,
+          letterSpacing: 2.5, // Generous track spacing matches premium design patterns
         ),
       );
 }
@@ -329,11 +341,11 @@ class _Headline extends StatelessWidget {
         text,
         style: TextStyle(
           fontFamily: 'Georgia',
-          fontSize: 30,
+          fontSize: 32, // Marginally larger for stronger visual hierarchy
           fontWeight: FontWeight.w700,
           color: AppPalette.of(context).textPrimary,
-          height: 1.25,
-          letterSpacing: -0.5,
+          height: 1.2,
+          letterSpacing: -0.6,
         ),
       );
 }
@@ -350,23 +362,24 @@ class _PrimaryButton extends StatelessWidget {
     return PressButton(
       onPressed: onPressed ?? () {},
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
         width: double.infinity,
-        height: 52,
+        height: 54, // Added slight height to look structural and intentional
         decoration: BoxDecoration(
           color: disabled
-              ? palette.buttonPrimary.withValues(alpha: 0.2)
+              ? palette.buttonPrimary.withValues(alpha: 0.15)
               : palette.buttonPrimary,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8), // Subtly softer curves
         ),
         child: Center(
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 14.5,
               fontWeight: FontWeight.w600,
-              color: palette.buttonPrimaryText.withValues(alpha: disabled ? 0.4 : 1.0),
-              letterSpacing: 0.2,
+              color: palette.buttonPrimaryText.withValues(alpha: disabled ? 0.35 : 1.0),
+              letterSpacing: 0.3,
             ),
           ),
         ),
@@ -376,8 +389,6 @@ class _PrimaryButton extends StatelessWidget {
 }
 
 // ─── Checkmark painter ────────────────────────────────────────────────────────
-// Draws a thin circle first (0–60% progress), then traces the check (60–100%).
-// Deliberately unhurried — reinforces the calm, deliberate tone of the whole flow.
 
 class _CheckPainter extends CustomPainter {
   final double progress;
@@ -390,14 +401,13 @@ class _CheckPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
-      ..strokeWidth = 1.5
+      ..strokeWidth = 1.25 // Slightly finer lines feel cleaner and premium
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2 - 2;
 
-    // Phase 1: circle
     final circleP = (progress / _circleFraction).clamp(0.0, 1.0);
     if (circleP > 0) {
       canvas.drawArc(
@@ -409,14 +419,13 @@ class _CheckPainter extends CustomPainter {
       );
     }
 
-    // Phase 2: checkmark
     final checkP =
         ((progress - _circleFraction) / (1 - _circleFraction)).clamp(0.0, 1.0);
     if (checkP > 0) {
       final path = Path()
-        ..moveTo(size.width * 0.30, size.height * 0.50)
-        ..lineTo(size.width * 0.44, size.height * 0.63)
-        ..lineTo(size.width * 0.70, size.height * 0.37);
+        ..moveTo(size.width * 0.32, size.height * 0.50)
+        ..lineTo(size.width * 0.45, size.height * 0.62)
+        ..lineTo(size.width * 0.68, size.height * 0.38);
 
       final metric = path.computeMetrics().first;
       canvas.drawPath(
