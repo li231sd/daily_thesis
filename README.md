@@ -1,5 +1,7 @@
 # Daily Thesis
 
+![Banner](/assets/social_banner.png)
+
 A Flutter app that delivers one relevant research paper a day, picked to match your interests.
 
 On first launch you pick the subjects you care about (Computer Science, Medicine, Biology, Physics, and more). From then on, the app surfaces a matching paper each day — sourced from arXiv and OpenAlex via a Cloudflare Worker backend — with the abstract, a link to the full paper, and tools like citation copying and reading history.
