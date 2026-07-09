@@ -5,6 +5,7 @@ import 'screens/paper_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/ad_service.dart';
 import 'services/profile_storage.dart';
+import 'services/text_scale_storage.dart';
 import 'services/theme_mode_storage.dart';
 import 'theme/app_theme.dart';
 
@@ -12,6 +13,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
   await ThemeModeController.instance.load();
+  await TextScaleController.instance.load();
   await AdService.instance.initialize();
   runApp(const DailyThesisApp());
 }
@@ -51,7 +53,17 @@ class DailyThesisApp extends StatelessWidget {
               ),
             );
 
-            return child ?? const SizedBox.shrink();
+            return ValueListenableBuilder<AppTextScale>(
+              valueListenable: TextScaleController.instance.notifier,
+              builder: (context, textScale, _) {
+                return MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    textScaler: TextScaler.linear(textScale.factor),
+                  ),
+                  child: child ?? const SizedBox.shrink(),
+                );
+              },
+            );
           },
           home: const AppRoot(),
         );
