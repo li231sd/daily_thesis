@@ -141,14 +141,34 @@ class InterestMatcher {
   /// Deterministically picks one subject per day from the user's matched
   /// subjects, so the app rotates through their interests instead of always
   /// hitting the same one. Falls back to 'all' if the user has no subjects.
-  static String subjectForToday(List<String> matchedSubjects) {
+  ///
+  /// If [dislikeCounts] is provided (from FeedbackStorage), subjects with a
+  /// dislike count more than 2 above the least-disliked matched subject are
+  /// softly deprioritized — excluded from rotation unless doing so would
+  /// remove every option, in which case all subjects stay eligible. This
+  /// never permanently silences a subject the user explicitly chose; it
+  /// just reduces how often a subject they keep skipping comes up.
+  static String subjectForToday(
+    List<String> matchedSubjects, {
+    Map<String, int>? dislikeCounts,
+  }) {
     if (matchedSubjects.isEmpty) return 'all';
     if (matchedSubjects.length == 1) return matchedSubjects.first;
 
+    var candidates = [...matchedSubjects]..sort();
+
+    if (dislikeCounts != null && dislikeCounts.isNotEmpty) {
+      final minCount = candidates
+          .map((s) => dislikeCounts[s] ?? 0)
+          .reduce((a, b) => a < b ? a : b);
+      final filtered =
+          candidates.where((s) => (dislikeCounts[s] ?? 0) <= minCount + 2).toList();
+      if (filtered.isNotEmpty) candidates = filtered;
+    }
+
     final today = DateTime.now();
     final dayIndex = today.year * 365 + today.month * 30 + today.day;
-    final sorted = [...matchedSubjects]..sort();
 
-    return sorted[dayIndex % sorted.length];
+    return candidates[dayIndex % candidates.length];
   }
 }

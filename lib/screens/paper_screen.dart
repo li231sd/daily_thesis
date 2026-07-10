@@ -4,6 +4,9 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/paper.dart';
 import '../models/user_profile.dart';
+import '../services/feedback_storage.dart';
+import '../services/interest_matcher.dart';
+import '../services/liked_papers_storage.dart';
 import '../services/paper_history_storage.dart';
 import '../services/paper_service.dart';
 import '../services/profile_storage.dart';
@@ -28,6 +31,8 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
   final _service = PaperService();
   final _profileStorage = ProfileStorage();
   final _historyStorage = PaperHistoryStorage();
+  final _feedbackStorage = FeedbackStorage();
+  final _likedStorage = LikedPapersStorage();
 
   UserProfile? _profile;
   List<String>? selectedSubjects;
@@ -36,7 +41,15 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
   bool hasError = false;
   String errorTitle = '';
   String errorMessage = '';
-  bool _contentVisible = false;
+
+  Map<String, int> _dislikeCounts = {};
+  String? _currentSubject;
+  int _subjectRotationIndex = 0;
+  int _attempt = 0;
+  final Set<String> _shownUrlsToday = {};
+
+  Set<String> _likedUrls = {};
+  bool get _isCurrentLiked => _paper != null && _likedUrls.contains(_paper!.url);
 
   late AnimationController _refreshCtrl;
 
@@ -48,12 +61,18 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
       duration: const Duration(milliseconds: 800),
     );
     _loadProfileAndFetch();
+    _loadLikedUrls();
   }
 
   @override
   void dispose() {
     _refreshCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadLikedUrls() async {
+    final urls = await _likedStorage.load();
+    if (mounted) setState(() => _likedUrls = urls);
   }
 
   Future<void> _loadProfileAndFetch() async {
@@ -69,18 +88,29 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
     setState(() {
       isLoading = true;
       hasError = false;
-      _contentVisible = false;
     });
     _refreshCtrl.repeat();
 
+    _shownUrlsToday.clear();
+    _attempt = 0;
+    _subjectRotationIndex = 0;
+
     try {
-      final paper = await _service.fetchDailyPaper(matchedSubjects: selectedSubjects);
+      _dislikeCounts = await _feedbackStorage.loadDislikeCounts();
+      final subjects = selectedSubjects ?? const [];
+      _currentSubject = subjects.isEmpty
+          ? null
+          : InterestMatcher.subjectForToday(subjects, dislikeCounts: _dislikeCounts);
+
+      final paper = await _service.fetchDailyPaper(
+        matchedSubjects: selectedSubjects,
+        dislikeCounts: _dislikeCounts,
+      );
       await _historyStorage.saveDailyRecommendation(paper);
       setState(() {
         _paper = paper;
         isLoading = false;
       });
-      _revealContent();
     } on Exception catch (e) {
       _setErrorState('Connection Error', e.toString());
     } finally {
@@ -89,19 +119,79 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
     }
   }
 
+  Future<void> _notForMe() async {
+    if (_paper == null || hasError || isLoading) return;
+    HapticFeedback.lightImpact();
+
+    if (_currentSubject != null) {
+      await _feedbackStorage.recordNotForMe(_currentSubject!);
+      _dislikeCounts[_currentSubject!] = (_dislikeCounts[_currentSubject!] ?? 0) + 1;
+    }
+
+    await _getAnotherPaper();
+  }
+
+  Future<void> _getAnotherPaper() async {
+    setState(() {
+      isLoading = true;
+      hasError = false;
+    });
+    _refreshCtrl.repeat();
+
+    try {
+      if (_paper != null) _shownUrlsToday.add(_paper!.url);
+
+      final subjects = selectedSubjects ?? const [];
+      String nextSubject;
+      if (subjects.length > 1) {
+        _subjectRotationIndex = (_subjectRotationIndex + 1) % subjects.length;
+        nextSubject = subjects[_subjectRotationIndex];
+      } else {
+        nextSubject = _currentSubject ?? 'all';
+      }
+
+      final newPaper = await _service.fetchAnotherPaper(
+        subject: nextSubject,
+        attempt: _attempt++,
+        excludeUrls: _shownUrlsToday,
+      );
+
+      await _historyStorage.saveDailyRecommendation(newPaper);
+      setState(() {
+        _paper = newPaper;
+        _currentSubject = nextSubject;
+        isLoading = false;
+      });
+    } on Exception catch (e) {
+      _setErrorState('Connection Error', e.toString());
+    } finally {
+      _refreshCtrl.stop();
+      _refreshCtrl.animateTo(1.0, curve: Curves.easeOut);
+    }
+  }
+
+  Future<void> _toggleLike() async {
+    final paper = _paper;
+    if (paper == null || hasError) return;
+    HapticFeedback.mediumImpact();
+
+    final liked = !_likedUrls.contains(paper.url);
+    setState(() {
+      if (liked) {
+        _likedUrls.add(paper.url);
+      } else {
+        _likedUrls.remove(paper.url);
+      }
+    });
+    await _likedStorage.setLiked(paper.url, liked);
+  }
+
   void _setErrorState(String title, String message) {
     setState(() {
       errorTitle = title;
       errorMessage = message;
       isLoading = false;
       hasError = true;
-    });
-    _revealContent();
-  }
-
-  void _revealContent() {
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) setState(() => _contentVisible = true);
     });
   }
 
@@ -154,7 +244,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
             margin: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: palette.surface,
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
                   color: palette.shadow,
@@ -164,13 +254,18 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
               ],
             ),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 12,
+                bottom: MediaQuery.paddingOf(context).bottom + 12,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: 44,
-                    height: 5,
+                    width: 40,
+                    height: 4,
                     decoration: BoxDecoration(
                       color: palette.border,
                       borderRadius: BorderRadius.circular(999),
@@ -179,19 +274,19 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
                   const SizedBox(height: 16),
                   _MenuAction(
                     icon: Icons.refresh_rounded,
-                    label: 'Reload',
+                    label: 'Reload Recommendation',
                     onTap: () => Navigator.of(context).pop('reload'),
                   ),
                   const SizedBox(height: 8),
                   _MenuAction(
                     icon: Icons.history_rounded,
-                    label: 'History',
+                    label: 'Reading History',
                     onTap: () => Navigator.of(context).pop('history'),
                   ),
                   const SizedBox(height: 8),
                   _MenuAction(
                     icon: Icons.tune_rounded,
-                    label: 'Settings',
+                    label: 'Preferences & Feeds',
                     onTap: () => Navigator.of(context).pop('settings'),
                   ),
                 ],
@@ -284,6 +379,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
+
     return Scaffold(
       backgroundColor: palette.background,
       appBar: AppBar(
@@ -311,7 +407,10 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         ),
         centerTitle: true,
         actions: [
-          IconButton(icon: Icon(Icons.menu_rounded, size: 24, color: palette.textPrimary), onPressed: _openActionsMenu),
+          IconButton(
+            icon: Icon(Icons.menu_rounded, size: 24, color: palette.textPrimary),
+            onPressed: _openActionsMenu,
+          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -320,9 +419,9 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 620),
-            padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 24.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 400),
+              duration: const Duration(milliseconds: 300),
               switchInCurve: Curves.easeOut,
               switchOutCurve: Curves.easeIn,
               child: isLoading
@@ -332,9 +431,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
                       height: 500,
                       child: ShimmerLoader(),
                     )
-                  : _contentVisible
-                      ? _buildContent()
-                      : const SizedBox(key: ValueKey('blank'), height: 500),
+                  : _buildContent(),
             ),
           ),
         ),
@@ -366,17 +463,18 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
         // ── Title ────────────────────────────────────────────────────────
         Reveal(
-          delay: const Duration(milliseconds: 60),
+          delay: const Duration(milliseconds: 40),
           child: MathText(
             hasError ? errorTitle : (paper?.title ?? ''),
             style: TextStyle(
               fontFamily: 'Georgia',
               fontWeight: FontWeight.w700,
-              fontSize: 28,
+              fontSize: 26,
+              height: 1.25,
               color: palette.textPrimary,
             ),
           ),
@@ -384,9 +482,9 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
 
         // ── Authors ───────────────────────────────────────────────────────
         if (!hasError && paper != null && paper.authors.isNotEmpty) ...[
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           Reveal(
-            delay: const Duration(milliseconds: 120),
+            delay: const Duration(milliseconds: 80),
             child: Text(
               paper.authors,
               style: TextStyle(
@@ -400,9 +498,9 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
 
         // ── Journal ───────────────────────────────────────────────────────
         if (!hasError && paper != null && paper.journal.isNotEmpty) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Reveal(
-            delay: const Duration(milliseconds: 180),
+            delay: const Duration(milliseconds: 120),
             child: Text(
               paper.publishYear != null
                   ? '${paper.journal}, ${paper.publishYear}'
@@ -417,16 +515,16 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         if (!hasError && paper != null && paper.citationCount != null) ...[
           const SizedBox(height: 8),
           Reveal(
-            delay: const Duration(milliseconds: 180),
+            delay: const Duration(milliseconds: 140),
             child: CitationBadge(paper.citationCount!),
           ),
         ],
 
         // ── Divider ───────────────────────────────────────────────────────
         Reveal(
-          delay: const Duration(milliseconds: 240),
+          delay: const Duration(milliseconds: 160),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 28.0),
+            padding: const EdgeInsets.symmetric(vertical: 24.0),
             child: Divider(
               height: 1,
               thickness: 0.75,
@@ -437,7 +535,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
 
         // ── Abstract ─────────────────────────────────────────────────────
         Reveal(
-          delay: const Duration(milliseconds: 300),
+          delay: const Duration(milliseconds: 200),
           child: MathText(
             hasError ? errorMessage : (paper?.abstract ?? ''),
             style: TextStyle(
@@ -451,110 +549,87 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
 
         // ── arXiv disclaimer ─────────────────────────────────────────────
         if (!hasError && paper != null && paper.isArxiv) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Reveal(
-            delay: const Duration(milliseconds: 330),
+            delay: const Duration(milliseconds: 220),
             child: const ArxivDisclaimer(),
           ),
         ],
 
-        const SizedBox(height: 48),
+        const SizedBox(height: 40),
 
-        // ── CTA Button ────────────────────────────────────────────────────
-        if (!hasError && paper != null && paper.url.isNotEmpty)
-          Reveal(
-            delay: const Duration(milliseconds: 360),
-            child: PressButton(
-              onPressed: _openPaperLink,
-              child: Container(
-                width: double.infinity,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: palette.buttonPrimary,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Read Full Publication',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: palette.buttonPrimaryText,
-                        letterSpacing: 0.3,
+        // ── Primary Action Panel (Ergonomic layout) ────────────────────────
+        if (!hasError && paper != null) ...[
+          if (paper.url.isNotEmpty)
+            Reveal(
+              delay: const Duration(milliseconds: 240),
+              child: PressButton(
+                onPressed: _openPaperLink,
+                child: Container(
+                  width: double.infinity,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: palette.buttonPrimary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Read Full Publication',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: palette.buttonPrimaryText,
+                          letterSpacing: 0.3,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 16,
-                      color: palette.buttonPrimaryText.withValues(alpha: 0.8),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-        // ── Error retry ───────────────────────────────────────────────────
-        if (hasError)
-          Reveal(
-            delay: const Duration(milliseconds: 200),
-            child: PressButton(
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                fetchDailyPaper();
-              },
-              child: Container(
-                width: double.infinity,
-                height: 52,
-                decoration: BoxDecoration(
-                  border: Border.all(color: palette.textPrimary, width: 1.25),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Center(
-                  child: Text(
-                    'Try Again',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 16,
+                        color: palette.buttonPrimaryText.withValues(alpha: 0.8),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ),
+          const SizedBox(height: 12),
 
-        // ── Action Grid Row (Cite, Share, Discuss) ────────────────────────
-        if (!hasError && paper != null) ...[
-          const SizedBox(height: 24),
+          // Discovery Feedback Controls (Like / Skip)
           Reveal(
-            delay: const Duration(milliseconds: 330),
+            delay: const Duration(milliseconds: 260),
             child: Row(
               children: [
-                // ── Cite ──
                 Expanded(
                   child: PressButton(
-                    onPressed: _copyCitation,
+                    onPressed: _toggleLike,
                     child: Container(
                       height: 48,
                       decoration: BoxDecoration(
-                        color: palette.buttonSecondary,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: palette.buttonSecondaryBorder),
+                        color: _isCurrentLiked ? palette.textPrimary.withValues(alpha: 0.08) : palette.buttonSecondary,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _isCurrentLiked ? palette.textPrimary : palette.buttonSecondaryBorder,
+                          width: _isCurrentLiked ? 1.5 : 1.0,
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.format_quote_rounded, size: 14, color: palette.buttonSecondaryText),
-                          const SizedBox(width: 4),
+                          Icon(
+                            _isCurrentLiked ? Icons.thumb_up_rounded : Icons.thumb_up_outlined,
+                            size: 16,
+                            color: _isCurrentLiked ? palette.textPrimary : palette.buttonSecondaryText,
+                          ),
+                          const SizedBox(width: 6),
                           Text(
-                            'Cite',
+                            'Like',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: palette.buttonSecondaryText,
+                              color: _isCurrentLiked ? palette.textPrimary : palette.buttonSecondaryText,
                             ),
                           ),
                         ],
@@ -562,57 +637,24 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-
-                // ── Share ──
+                const SizedBox(width: 12),
                 Expanded(
                   child: PressButton(
-                    onPressed: _sharePaper,
+                    onPressed: _notForMe,
                     child: Container(
                       height: 48,
                       decoration: BoxDecoration(
                         color: palette.buttonSecondary,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: palette.buttonSecondaryBorder),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.ios_share_rounded, size: 14, color: palette.buttonSecondaryText),
-                          const SizedBox(width: 4),
+                          Icon(Icons.thumb_down_outlined, size: 16, color: palette.buttonSecondaryText),
+                          const SizedBox(width: 6),
                           Text(
-                            'Share',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: palette.buttonSecondaryText,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-
-                // ── Discuss with AI ──
-                Expanded(
-                  child: PressButton(
-                    onPressed: _discussWithChatGPT,
-                    child: Container(
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: palette.buttonSecondary,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: palette.buttonSecondaryBorder),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.chat_bubble_outline_rounded, size: 14, color: palette.buttonSecondaryText),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Discuss',
+                            'Skip Paper',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -627,10 +669,104 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
               ],
             ),
           ),
+
+          // Document Secondary Action Row (Cite, Share, Discuss)
+          const SizedBox(height: 12),
+          Reveal(
+            delay: const Duration(milliseconds: 280),
+            child: Row(
+              children: [
+                _buildUtilityButton(
+                  icon: Icons.format_quote_rounded,
+                  label: 'Cite',
+                  onPressed: _copyCitation,
+                  palette: palette,
+                ),
+                const SizedBox(width: 8),
+                _buildUtilityButton(
+                  icon: Icons.ios_share_rounded,
+                  label: 'Share',
+                  onPressed: _sharePaper,
+                  palette: palette,
+                ),
+                const SizedBox(width: 8),
+                _buildUtilityButton(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  label: 'Discuss',
+                  onPressed: _discussWithChatGPT,
+                  palette: palette,
+                ),
+              ],
+            ),
+          ),
         ],
 
-        const SizedBox(height: 40),
+        // ── Error retry ───────────────────────────────────────────────────
+        if (hasError)
+          Reveal(
+            delay: const Duration(milliseconds: 100),
+            child: PressButton(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                fetchDailyPaper();
+              },
+              child: Container(
+                width: double.infinity,
+                height: 52,
+                decoration: BoxDecoration(
+                  border: Border.all(color: palette.textPrimary, width: 1.25),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Center(
+                  child: Text(
+                    'Try Again',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        const SizedBox(height: 32),
       ],
+    );
+  }
+
+  Widget _buildUtilityButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    required AppPalette palette,
+  }) {
+    return Expanded(
+      child: PressButton(
+        onPressed: onPressed,
+        child: Container(
+          height: 44,
+          decoration: BoxDecoration(
+            color: palette.buttonSecondary,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: palette.buttonSecondaryBorder.withValues(alpha: 0.5)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 14, color: palette.buttonSecondaryText),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: palette.buttonSecondaryText,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -651,20 +787,20 @@ class _MenuAction extends StatelessWidget {
     final palette = AppPalette.of(context);
     return Material(
       color: palette.buttonSecondary,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: palette.buttonSecondaryText),
+              Icon(icon, size: 18, color: palette.buttonSecondaryText),
               const SizedBox(width: 12),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: palette.buttonSecondaryText,
                 ),
