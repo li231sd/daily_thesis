@@ -92,4 +92,39 @@ class PaperService {
     final fallbackIndex = (baseIndex + attempt) % results.length;
     return Paper.fromJson(results[fallbackIndex] as Map<String, dynamic>);
   }
+
+  /// Returns up to [count] candidates for [subject], skipping anything in
+  /// [excludeUrls]. Used to top up PaperBufferStorage while online so
+  /// there's something fresh to show when the connection drops. Reuses the
+  /// same worker endpoint as the other two methods — the worker already
+  /// returns a full candidate list per subject, so no backend changes are
+  /// needed for prefetching.
+  Future<List<Paper>> fetchCandidates({
+    required String subject,
+    int count = 4,
+    Set<String> excludeUrls = const {},
+  }) async {
+    final uri = Uri.parse('$_workerUrl?subject=$subject');
+    final response = await http.get(uri).timeout(const Duration(seconds: 20));
+
+    if (response.statusCode != 200) {
+      throw Exception('Server returned ${response.statusCode}');
+    }
+
+    final decoded = jsonDecode(response.body);
+    final results = switch (decoded) {
+      List<dynamic> items => items,
+      Map<String, dynamic> json => (json['data'] as List<dynamic>?) ?? const [],
+      _ => const [],
+    };
+
+    final out = <Paper>[];
+    for (final item in results) {
+      final paper = Paper.fromJson(item as Map<String, dynamic>);
+      if (paper.url.isEmpty || excludeUrls.contains(paper.url)) continue;
+      out.add(paper);
+      if (out.length >= count) break;
+    }
+    return out;
+  }
 }

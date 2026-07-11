@@ -1,7 +1,5 @@
 import 'dart:convert';
-
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../models/paper.dart';
 
 class PaperHistoryEntry {
@@ -27,13 +25,7 @@ class PaperHistoryStorage {
   static const _key = 'paper_history_v1';
   static const int _maxEntries = 40;
 
-  String _dayKey(DateTime value) {
-    final local = value.toLocal();
-    final month = local.month.toString().padLeft(2, '0');
-    final day = local.day.toString().padLeft(2, '0');
-    return '${local.year}-$month-$day';
-  }
-
+  /// Loads the complete list of viewed papers from local storage.
   Future<List<PaperHistoryEntry>> load() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_key);
@@ -48,23 +40,33 @@ class PaperHistoryStorage {
         .toList();
   }
 
+  /// Saves a newly viewed paper to the history timeline.
+  /// 
+  /// This allows multiple papers per day, ensures no duplicate entries exist 
+  /// for the same paper (moving it to the top if re-viewed), and caps the history 
+  /// length at [_maxEntries].
   Future<void> saveDailyRecommendation(Paper paper) async {
     final prefs = await SharedPreferences.getInstance();
     final current = await load();
-    final todayKey = _dayKey(DateTime.now());
 
-    final filtered = current
-        .where((entry) => _dayKey(entry.viewedAt) != todayKey)
-        .toList();
+    // 1. Create a mutable working copy of the history
+    final updated = List<PaperHistoryEntry>.from(current);
 
-    filtered.insert(0, PaperHistoryEntry(paper: paper, viewedAt: DateTime.now()));
+    // 2. Deduplicate: Remove the paper if it already exists anywhere in history.
+    // If your Paper model has an 'id', you can use entry.paper.id == paper.id instead.
+    updated.removeWhere((entry) => entry.paper.url == paper.url);
 
+    // 3. Insert the fresh view entry at the front of the list
+    updated.insert(0, PaperHistoryEntry(paper: paper, viewedAt: DateTime.now()));
+
+    // 4. Persist the updated history list, trimming down to the maximum allowed entries
     await prefs.setString(
       _key,
-      jsonEncode(filtered.take(_maxEntries).map((entry) => entry.toJson()).toList()),
+      jsonEncode(updated.take(_maxEntries).map((entry) => entry.toJson()).toList()),
     );
   }
 
+  /// Clears the entire viewing history.
   Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_key);

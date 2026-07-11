@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -7,6 +10,7 @@ import '../models/user_profile.dart';
 import '../services/feedback_storage.dart';
 import '../services/interest_matcher.dart';
 import '../services/liked_papers_storage.dart';
+import '../services/paper_buffer_storage.dart';
 import '../services/paper_history_storage.dart';
 import '../services/paper_service.dart';
 import '../services/profile_storage.dart';
@@ -33,6 +37,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
   final _historyStorage = PaperHistoryStorage();
   final _feedbackStorage = FeedbackStorage();
   final _likedStorage = LikedPapersStorage();
+  final _bufferStorage = PaperBufferStorage();
 
   UserProfile? _profile;
   List<String>? selectedSubjects;
@@ -41,6 +46,11 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
   bool hasError = false;
   String errorTitle = '';
   String errorMessage = '';
+
+  // True when the paper currently on screen was served from the offline
+  // buffer rather than a live fetch (either because the device had no
+  // connection, or because the live fetch failed).
+  bool _isOffline = false;
 
   Map<String, int> _dislikeCounts = {};
   String? _currentSubject;
@@ -84,10 +94,70 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
     fetchDailyPaper();
   }
 
+  /// True if the device currently has some form of network connection.
+  /// This is a quick local check (not a real reachability probe), so it's
+  /// used to skip straight to the offline buffer instead of waiting out a
+  /// 20-second timeout — the actual fetch call is still the source of
+  /// truth if this check is wrong (e.g. captive portal Wi-Fi).
+  Future<bool> _hasConnection() async {
+    final result = await Connectivity().checkConnectivity();
+    return !result.contains(ConnectivityResult.none);
+  }
+
+  /// Builds the set of URLs we should never re-serve: everything already
+  /// viewed (history) plus everything shown earlier this session.
+  Future<Set<String>> _excludedUrls() async {
+    final history = await _historyStorage.load();
+    return {..._shownUrlsToday, ...history.map((e) => e.paper.url)};
+  }
+
+  /// Tops up the offline buffer while we have a connection. Fire-and-forget
+  /// — never blocks the UI and any failure here is silently ignored, since
+  /// the buffer is a nice-to-have, not the primary path.
+  Future<void> _refillBuffer() async {
+    try {
+      if (await _bufferStorage.count() >= PaperBufferStorage.targetSize) return;
+
+      final excludeUrls = await _excludedUrls();
+      final subjects = (selectedSubjects == null || selectedSubjects!.isEmpty)
+          ? const ['all']
+          : selectedSubjects!;
+
+      for (final subject in subjects) {
+        if (await _bufferStorage.count() >= PaperBufferStorage.targetSize) break;
+        final candidates = await _service.fetchCandidates(
+          subject: subject,
+          excludeUrls: excludeUrls,
+        );
+        await _bufferStorage.addIfRoom(candidates, excludeUrls: excludeUrls);
+      }
+    } catch (_) {
+      // Buffer refill is best-effort; a failure here shouldn't surface to
+      // the user or interrupt whatever they're doing.
+    }
+  }
+
+  /// Serves the next queued paper as a fallback when a live fetch isn't
+  /// possible. Returns true if a buffered paper was shown.
+  Future<bool> _tryServeFromBuffer() async {
+    final buffered = await _bufferStorage.popNext();
+    if (buffered == null) return false;
+
+    await _historyStorage.saveDailyRecommendation(buffered);
+    if (!mounted) return true;
+    setState(() {
+      _paper = buffered;
+      _isOffline = true;
+      isLoading = false;
+    });
+    return true;
+  }
+
   Future<void> fetchDailyPaper() async {
     setState(() {
       isLoading = true;
       hasError = false;
+      _isOffline = false;
     });
     _refreshCtrl.repeat();
 
@@ -102,6 +172,13 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
           ? null
           : InterestMatcher.subjectForToday(subjects, dislikeCounts: _dislikeCounts);
 
+      if (!await _hasConnection()) {
+        if (await _tryServeFromBuffer()) return;
+        throw Exception(
+          "You're offline and don't have any saved papers yet. Connect once to build up a queue.",
+        );
+      }
+
       final paper = await _service.fetchDailyPaper(
         matchedSubjects: selectedSubjects,
         dislikeCounts: _dislikeCounts,
@@ -111,7 +188,9 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         _paper = paper;
         isLoading = false;
       });
+      unawaited(_refillBuffer());
     } on Exception catch (e) {
+      if (await _tryServeFromBuffer()) return;
       _setErrorState('Connection Error', e.toString());
     } finally {
       _refreshCtrl.stop();
@@ -150,6 +229,13 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         nextSubject = _currentSubject ?? 'all';
       }
 
+      if (!await _hasConnection()) {
+        if (await _tryServeFromBuffer()) return;
+        throw Exception(
+          "You're offline and don't have any saved papers yet. Connect once to build up a queue.",
+        );
+      }
+
       final newPaper = await _service.fetchAnotherPaper(
         subject: nextSubject,
         attempt: _attempt++,
@@ -161,8 +247,11 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         _paper = newPaper;
         _currentSubject = nextSubject;
         isLoading = false;
+        _isOffline = false;
       });
+      unawaited(_refillBuffer());
     } on Exception catch (e) {
+      if (await _tryServeFromBuffer()) return;
       _setErrorState('Connection Error', e.toString());
     } finally {
       _refreshCtrl.stop();
@@ -463,6 +552,30 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
             ),
           ),
         ),
+
+        // ── Offline badge ───────────────────────────────────────────────
+        if (!hasError && _isOffline) ...[
+          const SizedBox(height: 8),
+          Reveal(
+            delay: const Duration(milliseconds: 20),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.cloud_off_rounded, size: 13, color: palette.textTertiary),
+                const SizedBox(width: 6),
+                Text(
+                  'OFFLINE · FROM YOUR SAVED QUEUE',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.0,
+                    color: palette.textTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
 
         // ── Title ────────────────────────────────────────────────────────
