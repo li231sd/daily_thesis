@@ -10,6 +10,9 @@ import 'services/profile_storage.dart';
 import 'services/text_scale_storage.dart';
 import 'services/theme_mode_storage.dart';
 import 'theme/app_theme.dart';
+import 'services/notification_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
@@ -19,6 +22,8 @@ Future<void> main() async {
   await Firebase.initializeApp();
   await AnalyticsService.instance.initialize();
   AnalyticsService.instance.logAppOpen();
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  await NotificationService.instance.initialize();
   runApp(const DailyThesisApp());
 }
 
