@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "641500928732",
+    "project_id": "com-daily-thesis-app",
+    "storage_bucket": "com-daily-thesis-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:641500928732:android:9bb8c91f2ff34fc9b77219",
+        "android_client_info": {
+          "package_name": "com.daily_thesis.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfhz8zSwwdSUHsuMJnbXVq5bkwg1365ao"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

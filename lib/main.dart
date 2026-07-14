@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'screens/paper_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/ad_service.dart';
+import 'services/analytics_service.dart';
 import 'services/profile_storage.dart';
 import 'services/text_scale_storage.dart';
 import 'services/theme_mode_storage.dart';
 import 'theme/app_theme.dart';
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
   await ThemeModeController.instance.load();
   await TextScaleController.instance.load();
   await AdService.instance.initialize();
+  await Firebase.initializeApp();
+  await AnalyticsService.instance.initialize();
+  AnalyticsService.instance.logAppOpen();
   runApp(const DailyThesisApp());
 }
 
