@@ -12,6 +12,7 @@ import 'services/theme_mode_storage.dart';
 import 'theme/app_theme.dart';
 import 'services/notification_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'services/device_id_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +24,12 @@ Future<void> main() async {
   await AnalyticsService.instance.initialize();
   AnalyticsService.instance.logAppOpen();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-  await NotificationService.instance.initialize();
+  final deviceId = await DeviceIdService.getOrCreate();
+  final profile = await ProfileStorage().load();
+  await NotificationService.instance.initialize(
+    deviceId,
+    subjects: profile?.matchedSubjects ?? [],
+  );
   runApp(const DailyThesisApp());
 }
 
