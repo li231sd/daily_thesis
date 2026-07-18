@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 class AppPalette {
   final Color background;
   final Color surface;
@@ -25,6 +24,7 @@ class AppPalette {
   final Color warningIcon;
   final Color warningText;
   final Color danger;
+  final Color link;
   final Color shimmerBase;
   final Color shimmerHighlight;
   final Color shadow;
@@ -54,6 +54,7 @@ class AppPalette {
     required this.warningIcon,
     required this.warningText,
     required this.danger,
+    required this.link,
     required this.shimmerBase,
     required this.shimmerHighlight,
     required this.shadow,
@@ -84,6 +85,7 @@ class AppPalette {
     warningIcon: Color(0xff8a7550),
     warningText: Color(0xff6b5c3e),
     danger: Color(0xffc93b2b),
+    link: Color(0xff2b6cb0),
     shimmerBase: Color(0xfff0ede9),
     shimmerHighlight: Color(0xfff7f5f2),
     shadow: Color(0x1f000000),
@@ -114,6 +116,7 @@ class AppPalette {
     warningIcon: Color(0xffe0c090),
     warningText: Color(0xffe6c99e),
     danger: Color(0xffff746a),
+    link: Color(0xff6ea8fe),
     shimmerBase: Color(0xff1a1f27),
     shimmerHighlight: Color(0xff262c36),
     shadow: Color(0x66000000),
