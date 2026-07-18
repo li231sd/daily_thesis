@@ -29,7 +29,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Future<void> _openPaper(String url) async {
     final uri = Uri.parse(url);
-    final launchUri = uri.hasScheme ? uri : Uri.parse('https://$url');
+    final launchUri = (uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https'))
+    ? uri
+    : Uri.parse('https://$url');
     await launchUrl(launchUri, mode: LaunchMode.externalApplication);
   }
 
