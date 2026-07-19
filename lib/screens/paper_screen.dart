@@ -18,7 +18,7 @@ import '../widgets/shimmer_loader.dart';
 import '../widgets/reveal.dart';
 import '../widgets/press_button.dart';
 import '../widgets/citation_badge.dart';
-import '../widgets/arxiv_disclaimer.dart';
+import '../widgets/preprint_disclaimer.dart';
 import '../widgets/math_text.dart';
 import '../theme/app_theme.dart';
 import 'history_screen.dart';
@@ -660,12 +660,12 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
           ),
         ),
 
-        // ── arXiv disclaimer ─────────────────────────────────────────────
-        if (!hasError && paper != null && paper.isArxiv) ...[
+        // ── Preprint disclaimer ──────────────────────────────────────────
+        if (!hasError && paper != null && paper.isPreprint) ...[
           const SizedBox(height: 20),
           Reveal(
             delay: const Duration(milliseconds: 220),
-            child: const ArxivDisclaimer(),
+            child: PreprintDisclaimer(sourceName: paper.sourceDisplayName),
           ),
         ],
 

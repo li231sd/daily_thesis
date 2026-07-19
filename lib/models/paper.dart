@@ -19,7 +19,35 @@ class Paper {
     required this.source,
   });
 
-  bool get isArxiv => source == 'arxiv';
+  // Preprint servers host work that hasn't gone through formal peer
+  // review — as opposed to PubMed/OpenAlex/Semantic Scholar, which mostly
+  // index already-published, peer-reviewed work. Keep this list in sync
+  // with the Worker's provider list (fetchFromArxiv/ChemRxiv/BioRxiv/
+  // MedRxiv `source` values).
+  static const _preprintSources = {'arxiv', 'chemrxiv', 'biorxiv', 'medrxiv'};
+
+  bool get isPreprint => _preprintSources.contains(source);
+
+  String get sourceDisplayName {
+    switch (source) {
+      case 'arxiv':
+        return 'arXiv';
+      case 'chemrxiv':
+        return 'ChemRxiv';
+      case 'biorxiv':
+        return 'bioRxiv';
+      case 'medrxiv':
+        return 'medRxiv';
+      case 'pubmed':
+        return 'PubMed';
+      case 'semanticscholar':
+        return 'Semantic Scholar';
+      case 'openalex':
+        return 'OpenAlex';
+      default:
+        return source;
+    }
+  }
 
   Map<String, dynamic> toJson() => {
         'title': title,
