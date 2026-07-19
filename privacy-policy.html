@@ -198,41 +198,50 @@
 
       <p class="eyebrow">Legal</p>
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated: July 7, 2026</p>
+      <p class="updated">Last updated: July 19, 2026</p>
 
       <p>
         Daily Thesis is built to keep your reading experience local and
-        minimal. This page explains what the app stores on your device, what
-        it sends over the network, and what third-party services it relies
-        on — including the ads that keep the app free.
+        minimal wherever possible. This page explains what the app stores on
+        your device, what it sends over the network, what third-party
+        services it relies on, and how you can ask us to delete data we hold.
       </p>
 
       <hr />
 
-      <h2>What Daily Thesis stores on your device</h2>
+      <h2>What Daily Thesis stores on your device only</h2>
       <p>
-        The app stores a small amount of information locally so it can
-        personalize recommendations and remember your preferences. None of
-        this leaves your device except where noted below.
+        The app stores the following locally so it can personalize
+        recommendations and remember your preferences. None of this leaves
+        your device.
       </p>
       <ul>
         <li>Your name, if you enter it during onboarding or in Settings.</li>
         <li>Your selected subjects and matched interest categories.</li>
-        <li>Your theme preference (System, Light, or Dark).</li>
+        <li>Your theme preference (System, Light, or Dark) and text size.</li>
+        <li>
+          Papers you've liked, and papers you've skipped or marked "not
+          interested in," so recommendations improve over time.
+        </li>
         <li>
           Your paper history, so you can revisit papers you've previously
           been shown.
         </li>
       </ul>
+      <p>
+        Uninstalling the app permanently deletes all of the above, since none
+        of it is copied to a server.
+      </p>
 
       <hr />
 
-      <h2>What Daily Thesis sends over the network</h2>
+      <h2>Getting your daily paper</h2>
       <p>
-        The app requests a daily paper recommendation from its backend
-        service, optionally including your selected subjects so the
-        recommendation is relevant to you. No account or persistent user
-        identifier is attached to this request.
+        The app requests a paper recommendation from its backend service,
+        which aggregates from arXiv, PubMed, OpenAlex, Semantic Scholar,
+        ChemRxiv, bioRxiv, and medRxiv. This request includes your selected
+        subject only — no account or persistent identifier is attached to
+        it.
       </p>
       <p>
         When you tap "Read Full Publication," "Cite," or "Share," the app
@@ -242,29 +251,59 @@
 
       <hr />
 
-      <h2>Advertising</h2>
+      <h2>Push notifications</h2>
       <p>
-        Daily Thesis is free to use and supported by ads served through
-        Google AdMob. To serve and measure ads, AdMob may collect device
-        identifiers (such as your device's advertising ID), general location
-        derived from IP address, and app usage data. This is handled by
-        Google, not by Daily Thesis directly — see
-        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a>
-        for details on how that data is used.
+        If you allow notifications, the app generates a random device
+        identifier (not tied to your name, email, or any account) and
+        registers it, along with your device's notification token and
+        selected subjects, with our backend so we know where and what to
+        send your daily notification. This is separate from the anonymous
+        paper-fetching request described above, and is the only place a
+        persistent identifier is sent off your device.
       </p>
       <p>
-        You can review or reset your device's ad personalization settings at
-        any time in your phone's system settings (Android: Settings → Privacy
-        → Ads; iOS: Settings → Privacy &amp; Security → Tracking).
+        This data is transmitted securely (HTTPS) and stored only for as
+        long as needed to deliver notifications. See "Requesting data
+        deletion" below to have it removed.
+      </p>
+
+      <hr />
+
+      <h2>Analytics</h2>
+      <p>
+        Daily Thesis uses Firebase Analytics (a Google service) to
+        understand how the app is used and to fix problems. This includes
+        app opens, screen views, which subjects you select (as counts, not
+        tied to your name), whether you liked, skipped, or disliked a paper
+        (recorded as a subject and action only — never which specific
+        paper), and whether a paper was served from the offline cache.
+        Firebase also automatically collects basic device and diagnostic
+        information (device model, OS version, app version) and an
+        approximate, IP-derived location. Google processes this data on our
+        behalf as our analytics provider; it is not sold or shared with
+        other companies. See
+        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a>
+        for details on how Google handles this data.
+      </p>
+
+      <hr />
+
+      <h2>Advertising</h2>
+      <p>
+        Daily Thesis does not currently show ads. Ad support (Google AdMob)
+        is built into the app but disabled. If we turn ads on in the future,
+        this policy will be updated first to describe what that involves,
+        and the change will also be reflected in the app's Play Store data
+        safety disclosure.
       </p>
 
       <hr />
 
       <h2>Discuss with ChatGPT</h2>
       <p>
-        If you tap "Discuss with ChatGPT" on a paper, the app opens
-        ChatGPT with that paper's title, authors, and abstract pre-filled
-        into a prompt for you to review and send. This is publicly available
+        If you tap "Discuss with ChatGPT" on a paper, the app opens ChatGPT
+        with that paper's title, authors, and abstract pre-filled into a
+        prompt for you to review and send. This is publicly available
         information about the paper itself, not personal data about you. The
         app does not send anything to OpenAI unless you tap this button, and
         the request happens directly between your device and ChatGPT — Daily
@@ -277,12 +316,34 @@
       <h2>What Daily Thesis does not do</h2>
       <ul>
         <li>It does not require an account or login.</li>
-        <li>It does not sell your personal information.</li>
+        <li>It does not sell your personal information to anyone.</li>
         <li>
-          It does not store your reading history, name, or preferences on a
-          company server — they stay on your device.
+          It does not store your reading history, liked papers, name, or
+          preferences on a server — those stay on your device only.
+        </li>
+        <li>
+          It does not attach your name or any local preference to the
+          notification identifier or analytics data described above.
         </li>
       </ul>
+
+      <hr />
+
+      <h2>Requesting data deletion</h2>
+      <p>
+        The only data Daily Thesis stores off your device is the
+        notification registration described above (a random device
+        identifier, notification token, and selected subjects). To request
+        deletion of this data, email us at the address below with enough
+        detail for us to locate your record (for example, the approximate
+        date you installed the app). We'll confirm once it's deleted.
+      </p>
+      <p>
+        Locally stored data (name, history, liked papers, preferences) is
+        entirely in your control — clearing the app's storage or
+        uninstalling it removes this data immediately, without needing to
+        contact us.
+      </p>
 
       <hr />
 
@@ -308,9 +369,9 @@
       <h2>Contact</h2>
       <div class="contact-card">
         <p>
-          Questions about this policy or the app's data practices? Reach out
-          at
-          <a href="mailto:li231sdyt@gmail.com">li231sdyt@gmail.com</a>.
+          Questions about this policy, the app's data practices, or a data
+          deletion request? Reach out at
+          <a href="mailto:sahil.singla.dev@gmail.com">sahil.singla.dev@gmail.com</a>.
         </p>
       </div>
 
