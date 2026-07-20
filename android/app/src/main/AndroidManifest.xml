@@ -1,5 +1,18 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <!-- Firebase Analytics auto-merges this permission by default, in case
+         it's used for ad-conversion features (Google Signals). Ads are
+         currently disabled (see the commented-out google_mobile_ads dep in
+         pubspec.yaml), so explicitly strip it here — otherwise the app
+         would declare advertising ID usage on Play Console for a
+         capability it doesn't actually use, contradicting the "No ads"
+         declaration in the Data Safety section. Remove this <uses-permission
+         tools:node="remove"> line (and update the Data Safety form) if ads
+         are ever turned back on. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"
+        tools:node="remove" />
     <application
         android:label="daily_thesis"
         android:name="${applicationName}"
