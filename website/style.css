@@ -1,0 +1,333 @@
+/* --- Global Styles & Variables --- */
+:root {
+    --bg-color: #faf9f7;
+    --text-main: #1a1a1a;
+    --text-muted: #666666;
+    --accent-black: #111111;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+/* --- Navigation --- */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 5%;
+    background-color: var(--bg-color);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    transition: box-shadow 0.3s var(--ease-out), backdrop-filter 0.3s;
+}
+
+.navbar.scrolled {
+    background-color: rgba(250, 249, 247, 0.85);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+.logo {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 2px;
+}
+
+.nav-btn {
+    text-decoration: none;
+    background-color: var(--accent-black);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: transform 0.2s var(--ease-out), opacity 0.2s;
+    display: inline-block;
+}
+
+.nav-btn:hover {
+    opacity: 0.85;
+    transform: translateY(-2px);
+}
+
+.nav-btn:active {
+    transform: translateY(0) scale(0.97);
+}
+
+/* --- Hero Section --- */
+.hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: 80px 5%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.hero-content {
+    flex: 1;
+    min-width: 300px;
+    padding-right: 40px;
+}
+
+.hero-title {
+    font-family: 'Merriweather', serif;
+    font-size: 48px;
+    line-height: 1.2;
+    margin-bottom: 20px;
+    color: var(--accent-black);
+    opacity: 0;
+    transform: translateY(24px);
+    animation: rise 0.8s var(--ease-out) forwards;
+    animation-delay: 0.1s;
+}
+
+.hero-subtitle {
+    font-size: 18px;
+    color: var(--text-muted);
+    margin-bottom: 40px;
+    max-width: 450px;
+    opacity: 0;
+    transform: translateY(24px);
+    animation: rise 0.8s var(--ease-out) forwards;
+    animation-delay: 0.28s;
+}
+
+.app-buttons {
+    display: flex;
+    gap: 15px;
+    opacity: 0;
+    transform: translateY(24px);
+    animation: rise 0.8s var(--ease-out) forwards;
+    animation-delay: 0.44s;
+}
+
+.store-btn {
+    padding: 14px 24px;
+    background-color: var(--accent-black);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+}
+
+.store-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(17, 17, 17, 0.22);
+}
+
+.store-btn:active {
+    transform: translateY(-1px) scale(0.98);
+}
+
+.hero-image {
+    flex: 1;
+    min-width: 300px;
+    display: flex;
+    justify-content: center;
+    margin-top: 40px;
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+    animation: rise-scale 0.9s var(--ease-out) forwards;
+    animation-delay: 0.3s;
+}
+
+@keyframes rise {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes rise-scale {
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* --- Phone Mockup Frames & Layout (Exact 1080x1920 Aspect Ratio) --- */
+.mockup-group {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.mockup-placeholder {
+    width: 260px;
+    aspect-ratio: 9 / 16; /* Enforces exact 1080x1920 proportions for all mockups */
+    background-color: var(--accent-black);
+    border-radius: 28px;  /* Calibrated corner radius so top UI elements aren't clipped */
+    border: 7px solid var(--accent-black);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.4s var(--ease-out), box-shadow 0.4s var(--ease-out);
+}
+
+.mockup-placeholder:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 24px 40px rgba(0, 0, 0, 0.18);
+}
+
+.mockup-placeholder img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;    /* Fills the 9:16 frame cleanly without side gaps */
+    display: block;
+}
+
+/* --- Features Section --- */
+.features {
+    padding: 100px 5%;
+    max-width: 1200px;
+    margin: 0 auto;
+    border-top: 1px solid #e0e0e0;
+}
+
+.feature-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 60px;
+    margin-bottom: 120px;
+}
+
+.feature-row:last-child {
+    margin-bottom: 0;
+}
+
+.feature-row.reverse {
+    flex-direction: row-reverse;
+}
+
+/* Scroll reveal: text and mockups rise in independently, mockups trailing slightly */
+.feature-row .feature-text {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+}
+
+.feature-row .mockup-group {
+    opacity: 0;
+    transform: translateY(36px);
+    transition: opacity 0.7s var(--ease-out) 0.12s, transform 0.7s var(--ease-out) 0.12s;
+}
+
+.feature-row.in-view .feature-text,
+.feature-row.in-view .mockup-group {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.feature-text {
+    flex: 1;
+    min-width: 280px;
+}
+
+.feature-text h2 {
+    font-family: 'Merriweather', serif;
+    font-size: 32px;
+    margin-bottom: 16px;
+    color: var(--accent-black);
+}
+
+.feature-text p {
+    color: var(--text-muted);
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+/* --- Footer --- */
+.footer {
+    text-align: center;
+    padding: 40px 5%;
+    color: var(--text-muted);
+    font-size: 14px;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 992px) {
+    .feature-row, 
+    .feature-row.reverse {
+        flex-direction: column;
+        text-align: center;
+        gap: 40px;
+        margin-bottom: 80px;
+    }
+
+    .hero-content {
+        padding-right: 0;
+        text-align: center;
+    }
+
+    .hero-subtitle {
+        margin: 0 auto 40px auto;
+    }
+
+    .app-buttons {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 576px) {
+    .hero-title {
+        font-size: 36px;
+    }
+
+    .mockup-placeholder {
+        width: 220px; /* Scales down uniformly on smaller screens */
+    }
+}
+
+/* --- Motion preference --- */
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    .hero-title,
+    .hero-subtitle,
+    .app-buttons,
+    .hero-image,
+    .feature-row .feature-text,
+    .feature-row .mockup-group {
+        animation: none !important;
+        transition: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    .store-btn:hover,
+    .nav-btn:hover,
+    .mockup-placeholder:hover {
+        transform: none;
+    }
+}
