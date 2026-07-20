@@ -103,7 +103,7 @@ body {
 .hero-subtitle {
     font-size: 18px;
     color: var(--text-muted);
-    margin-bottom: 40px;
+    margin-bottom: 20px;
     max-width: 450px;
     opacity: 0;
     transform: translateY(24px);
@@ -111,9 +111,34 @@ body {
     animation-delay: 0.28s;
 }
 
+.hero-sources {
+    font-size: 14px;
+    color: var(--text-muted);
+    max-width: 440px;
+    margin-bottom: 32px;
+    padding-left: 14px;
+    border-left: 2px solid #d8d5cf;
+    opacity: 0;
+    transform: translateY(24px);
+    animation: rise 0.8s var(--ease-out) forwards;
+    animation-delay: 0.36s;
+}
+
+.hero-microcopy {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 14px;
+    max-width: 400px;
+    opacity: 0;
+    transform: translateY(24px);
+    animation: rise 0.8s var(--ease-out) forwards;
+    animation-delay: 0.52s;
+}
+
 .app-buttons {
     display: flex;
     gap: 15px;
+    scroll-margin-top: 250px;
     opacity: 0;
     transform: translateY(24px);
     animation: rise 0.8s var(--ease-out) forwards;
@@ -264,6 +289,69 @@ body {
     line-height: 1.6;
 }
 
+/* --- How Testing Works --- */
+.how-it-works {
+    padding: 80px 5% 100px;
+    max-width: 1200px;
+    margin: 0 auto;
+    border-top: 1px solid #e0e0e0;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+}
+
+.how-it-works.in-view {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.how-heading {
+    font-family: 'Merriweather', serif;
+    font-size: 30px;
+    margin-bottom: 48px;
+    color: var(--accent-black);
+}
+
+.steps {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.step {
+    flex: 1;
+    min-width: 220px;
+    max-width: 320px;
+}
+
+.step-number {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--accent-black);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 15px;
+    margin: 0 auto 16px;
+}
+
+.step h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: var(--accent-black);
+}
+
+.step p {
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
 /* --- Footer --- */
 .footer {
     text-align: center;
@@ -319,6 +407,17 @@ body {
     .app-buttons {
         justify-content: center;
     }
+
+    .hero-sources {
+        margin-left: auto;
+        margin-right: auto;
+        text-align: left;
+    }
+
+    .steps {
+        flex-direction: column;
+        align-items: center;
+    }
 }
 
 @media (max-width: 576px) {
@@ -339,10 +438,13 @@ body {
 
     .hero-title,
     .hero-subtitle,
+    .hero-sources,
+    .hero-microcopy,
     .app-buttons,
     .hero-image,
     .feature-row .feature-text,
-    .feature-row .mockup-group {
+    .feature-row .mockup-group,
+    .how-it-works {
         animation: none !important;
         transition: none !important;
         opacity: 1 !important;
