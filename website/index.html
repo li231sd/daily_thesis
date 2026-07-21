@@ -11,6 +11,12 @@
     />
   </head>
   <body>
+    <script>
+      // Start the page slightly scrolled down instead of at the very top.
+      // Re-applied on full load since fonts/images can shift page height.
+      window.scrollTo(0, 70);
+      window.addEventListener("load", () => window.scrollTo(0, 70));
+    </script>
     <!-- Navigation -->
     <nav class="navbar" id="navbar">
       <div class="logo">DAILY THESIS</div>
@@ -114,6 +120,102 @@
       </div>
     </section>
 
+    <!-- Additional Capabilities Carousel -->
+    <section class="extra-features">
+      <h2 class="extra-heading">...and many more</h2>
+      <div class="carousel-viewport">
+        <div class="carousel-track">
+          <div class="carousel-card">
+            <h3>Math, rendered properly</h3>
+            <p>
+              CS and physics abstracts are full of LaTeX. Daily Thesis renders
+              equations inline instead of leaving you to decode raw markup.
+            </p>
+          </div>
+          <div class="carousel-card">
+            <h3>Read without a connection</h3>
+            <p>
+              Papers are prefetched and cached automatically, so your queue is
+              still there on a plane, in a lecture hall, or anywhere else with
+              spotty signal.
+            </p>
+          </div>
+          <div class="carousel-card">
+            <h3>Push notifications</h3>
+            <p>
+              Get pinged the moment a new paper matching your interests lands,
+              instead of checking back and hoping.
+            </p>
+          </div>
+          <div class="carousel-card">
+            <h3>Swipe through your feed</h3>
+            <p>
+              Skip what's not relevant and dig into what is with a quick swipe,
+              no scrolling through walls of abstracts.
+            </p>
+          </div>
+          <div class="carousel-card">
+            <h3>Save what matters</h3>
+            <p>
+              Like a paper and it's saved for later, so you can build a running
+              list without losing track in a sea of tabs.
+            </p>
+          </div>
+          <div class="carousel-card">
+            <h3>Feedback that improves your feed</h3>
+            <p>
+              Tell it what's useful and what's not. Your recommendations get
+              sharper the more you read.
+            </p>
+          </div>
+          <!-- Duplicate set, hidden from assistive tech, enables the seamless loop -->
+          <div class="carousel-card" aria-hidden="true">
+            <h3>Math, rendered properly</h3>
+            <p>
+              CS and physics abstracts are full of LaTeX. Daily Thesis renders
+              equations inline instead of leaving you to decode raw markup.
+            </p>
+          </div>
+          <div class="carousel-card" aria-hidden="true">
+            <h3>Read without a connection</h3>
+            <p>
+              Papers are prefetched and cached automatically, so your queue is
+              still there on a plane, in a lecture hall, or anywhere else with
+              spotty signal.
+            </p>
+          </div>
+          <div class="carousel-card" aria-hidden="true">
+            <h3>Push notifications</h3>
+            <p>
+              Get pinged the moment a new paper matching your interests lands,
+              instead of checking back and hoping.
+            </p>
+          </div>
+          <div class="carousel-card" aria-hidden="true">
+            <h3>Swipe through your feed</h3>
+            <p>
+              Skip what's not relevant and dig into what is with a quick swipe,
+              no scrolling through walls of abstracts.
+            </p>
+          </div>
+          <div class="carousel-card" aria-hidden="true">
+            <h3>Save what matters</h3>
+            <p>
+              Like a paper and it's saved for later, so you can build a running
+              list without losing track in a sea of tabs.
+            </p>
+          </div>
+          <div class="carousel-card" aria-hidden="true">
+            <h3>Feedback that improves your feed</h3>
+            <p>
+              Tell it what's useful and what's not. Your recommendations get
+              sharper the more you read.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- How Testing Works -->
     <section class="how-it-works">
       <h2 class="how-heading">How testing works</h2>
@@ -180,8 +282,10 @@
         { passive: true },
       );
 
-      // Reveal each feature row (and the how-it-works section) as it enters the viewport
-      const rows = document.querySelectorAll(".feature-row, .how-it-works");
+      // Reveal each feature row (plus the extra-features and how-it-works sections) as it enters the viewport
+      const rows = document.querySelectorAll(
+        ".feature-row, .extra-features, .how-it-works",
+      );
       if ("IntersectionObserver" in window) {
         const observer = new IntersectionObserver(
           (entries) => {

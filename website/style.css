@@ -138,7 +138,7 @@ body {
 .app-buttons {
     display: flex;
     gap: 15px;
-    scroll-margin-top: 250px;
+    scroll-margin-top: 100px;
     opacity: 0;
     transform: translateY(24px);
     animation: rise 0.8s var(--ease-out) forwards;
@@ -289,6 +289,139 @@ body {
     line-height: 1.6;
 }
 
+/* --- Additional Capabilities Carousel --- */
+.extra-features {
+    padding: 80px 0 100px;
+    max-width: 1200px;
+    margin: 0 auto;
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+}
+
+.extra-features.in-view {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.extra-heading {
+    font-family: 'Merriweather', serif;
+    font-size: 32px;
+    letter-spacing: -0.5px;
+    text-align: center;
+    margin-bottom: 48px;
+    color: var(--accent-black);
+}
+
+.carousel-viewport {
+    overflow: hidden;
+    padding: 12px 0; /* Prevents card shadows from being clipped vertically */
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
+}
+
+.carousel-track {
+    display: flex;
+    gap: 24px;
+    width: max-content;
+    animation: scroll-left 36s linear infinite;
+    will-change: transform;
+}
+
+.carousel-viewport:hover .carousel-track {
+    animation-play-state: paused;
+}
+
+@keyframes scroll-left {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+/* --- Upgraded Carousel Card Styles --- */
+.carousel-card {
+    position: relative;
+    flex: 0 0 auto;
+    width: 320px;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 20px;
+    padding: 32px 28px;
+    
+    /* Layered ambient shadow for depth */
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.03),
+        0 1px 2px rgba(0, 0, 0, 0.02);
+        
+    transition: 
+        transform 0.4s var(--ease-out), 
+        box-shadow 0.4s var(--ease-out), 
+        border-color 0.4s var(--ease-out);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Accent top border highlight on hover */
+.carousel-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 20px;
+    right: 20px;
+    height: 3px;
+    background-color: var(--accent-black);
+    border-radius: 3px 3px 0 0;
+    opacity: 0;
+    transition: opacity 0.3s var(--ease-out);
+}
+
+.carousel-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(0, 0, 0, 0.12);
+    box-shadow: 
+        0 20px 32px -8px rgba(0, 0, 0, 0.08),
+        0 8px 16px -4px rgba(0, 0, 0, 0.04);
+}
+
+.carousel-card:hover::before {
+    opacity: 1;
+}
+
+/* Optional Card Icon/Badge Container */
+.carousel-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background-color: var(--bg-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    font-size: 20px;
+    color: var(--accent-black);
+}
+
+.carousel-card h3 {
+    font-family: 'Merriweather', serif;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.35;
+    margin-bottom: 12px;
+    color: var(--accent-black);
+    letter-spacing: -0.2px;
+}
+
+.carousel-card p {
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.65;
+    font-weight: 400;
+}
+
 /* --- How Testing Works --- */
 .how-it-works {
     padding: 80px 5% 100px;
@@ -428,6 +561,11 @@ body {
     .mockup-placeholder {
         width: 220px; /* Scales down uniformly on smaller screens */
     }
+    
+    .carousel-card {
+        width: 280px;
+        padding: 24px 20px;
+    }
 }
 
 /* --- Motion preference --- */
@@ -444,6 +582,7 @@ body {
     .hero-image,
     .feature-row .feature-text,
     .feature-row .mockup-group,
+    .extra-features,
     .how-it-works {
         animation: none !important;
         transition: none !important;
@@ -453,7 +592,16 @@ body {
 
     .store-btn:hover,
     .nav-btn:hover,
-    .mockup-placeholder:hover {
+    .mockup-placeholder:hover,
+    .carousel-card:hover {
         transform: none;
+    }
+
+    .carousel-track {
+        animation: none !important;
+    }
+
+    .carousel-viewport {
+        overflow-x: auto;
     }
 }
