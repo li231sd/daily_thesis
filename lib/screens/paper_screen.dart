@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/paper.dart';
 import '../models/user_profile.dart';
+import '../services/dismissed_papers_storage.dart';
 import '../services/feedback_storage.dart';
 import '../services/interest_matcher.dart';
 import '../services/liked_papers_storage.dart';
@@ -37,6 +38,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
   final _historyStorage = PaperHistoryStorage();
   final _feedbackStorage = FeedbackStorage();
   final _likedStorage = LikedPapersStorage();
+  final _dismissedStorage = DismissedPapersStorage();
   final _bufferStorage = PaperBufferStorage();
 
   UserProfile? _profile;
@@ -105,10 +107,17 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
   }
 
   /// Builds the set of URLs we should never re-serve: everything already
-  /// viewed (history) plus everything shown earlier this session.
+  /// viewed (history), everything explicitly marked "not for me"
+  /// (persisted, so this survives app restarts — not just this session),
+  /// plus everything shown earlier this session.
   Future<Set<String>> _excludedUrls() async {
     final history = await _historyStorage.load();
-    return {..._shownUrlsToday, ...history.map((e) => e.paper.url)};
+    final dismissed = await _dismissedStorage.load();
+    return {
+      ..._shownUrlsToday,
+      ...dismissed,
+      ...history.map((e) => e.paper.url),
+    };
   }
 
   /// Tops up the offline buffer while we have a connection. Fire-and-forget
@@ -179,9 +188,11 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         );
       }
 
+      final excludeUrls = await _excludedUrls();
       final paper = await _service.fetchDailyPaper(
         matchedSubjects: selectedSubjects,
         dislikeCounts: _dislikeCounts,
+        excludeUrls: excludeUrls,
       );
       await _historyStorage.saveDailyRecommendation(paper);
       setState(() {
@@ -202,10 +213,18 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
     if (_paper == null || hasError || isLoading) return;
     HapticFeedback.lightImpact();
 
+    final dismissedPaper = _paper!;
+
     if (_currentSubject != null) {
       await _feedbackStorage.recordNotForMe(_currentSubject!);
       _dislikeCounts[_currentSubject!] = (_dislikeCounts[_currentSubject!] ?? 0) + 1;
     }
+
+    // Persist the dismissal so this specific paper is excluded going
+    // forward — including after the app is closed and reopened, not just
+    // for the rest of this session.
+    await _dismissedStorage.add(dismissedPaper.url);
+    await _historyStorage.updateStatus(dismissedPaper.url, PaperFeedbackStatus.disliked);
 
     await _getAnotherPaper();
   }
@@ -236,10 +255,11 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         );
       }
 
+      final excludeUrls = await _excludedUrls();
       final newPaper = await _service.fetchAnotherPaper(
         subject: nextSubject,
         attempt: _attempt++,
-        excludeUrls: _shownUrlsToday,
+        excludeUrls: excludeUrls,
       );
 
       await _historyStorage.saveDailyRecommendation(newPaper);
@@ -273,6 +293,10 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
       }
     });
     await _likedStorage.setLiked(paper.url, liked);
+    await _historyStorage.updateStatus(
+      paper.url,
+      liked ? PaperFeedbackStatus.liked : PaperFeedbackStatus.none,
+    );
   }
 
   void _setErrorState(String title, String message) {

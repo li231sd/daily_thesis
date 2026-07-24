@@ -4,6 +4,47 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/paper_history_storage.dart';
 import '../theme/app_theme.dart';
 
+/// Small pill showing whether a history entry was liked or marked "not
+/// for me", so History no longer looks identical for every paper
+/// regardless of how the user reacted to it.
+class _StatusBadge extends StatelessWidget {
+  final PaperFeedbackStatus status;
+  final AppPalette palette;
+
+  const _StatusBadge({required this.status, required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
+    final liked = status == PaperFeedbackStatus.liked;
+    final color = liked ? const Color(0xFFE0538C) : palette.textSecondary;
+    final icon = liked ? Icons.favorite_rounded : Icons.thumb_down_rounded;
+    final label = liked ? 'Liked' : 'Not for me';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
@@ -106,15 +147,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          paper.title,
-                          style: TextStyle(
-                            fontFamily: 'Georgia',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            height: 1.25,
-                            color: palette.textPrimary,
-                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                paper.title,
+                                style: TextStyle(
+                                  fontFamily: 'Georgia',
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.25,
+                                  color: palette.textPrimary,
+                                ),
+                              ),
+                            ),
+                            if (entry.status != PaperFeedbackStatus.none) ...[
+                              const SizedBox(width: 8),
+                              _StatusBadge(status: entry.status, palette: palette),
+                            ],
+                          ],
                         ),
                         if (paper.authors.isNotEmpty) ...[
                           const SizedBox(height: 8),

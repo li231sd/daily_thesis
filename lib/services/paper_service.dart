@@ -12,9 +12,18 @@ class PaperService {
   /// InterestMatcher.subjectForToday) so the same subject isn't hit every
   /// time. Pass [dislikeCounts] (from FeedbackStorage) to softly steer
   /// rotation away from subjects the user keeps marking "not for me".
+  ///
+  /// Pass [excludeUrls] (typically history + DismissedPapersStorage) to
+  /// skip papers already viewed or explicitly disliked. The pick still
+  /// starts from the same date-based index every time today (so a plain
+  /// re-open without any new dislikes shows the same paper), but walks
+  /// forward past anything in [excludeUrls] instead of blindly returning
+  /// the raw indexed result — this is what previously let a dismissed
+  /// paper come right back on refresh.
   Future<Paper> fetchDailyPaper({
     List<String>? matchedSubjects,
     Map<String, int>? dislikeCounts,
+    Set<String> excludeUrls = const {},
   }) async {
     final subject = (matchedSubjects == null || matchedSubjects.isEmpty)
         ? null
@@ -42,10 +51,21 @@ class PaperService {
     }
 
     final today = DateTime.now();
-    final index =
-        (today.year * 365 + today.month * 30 + today.day) % results.length;
+    final baseIndex = today.year * 365 + today.month * 30 + today.day;
 
-    return Paper.fromJson(results[index] as Map<String, dynamic>);
+    for (var i = 0; i < results.length; i++) {
+      final index = (baseIndex + i) % results.length;
+      final candidate = Paper.fromJson(results[index] as Map<String, dynamic>);
+      if (!excludeUrls.contains(candidate.url)) {
+        return candidate;
+      }
+    }
+
+    // Every result for this subject has already been viewed/dismissed —
+    // fall back to today's base pick rather than erroring out, matching
+    // fetchAnotherPaper's fallback behavior below.
+    final fallbackIndex = baseIndex % results.length;
+    return Paper.fromJson(results[fallbackIndex] as Map<String, dynamic>);
   }
 
   /// Fetches a different paper for [subject] — used by the "not for me"
