@@ -76,3 +76,4 @@ app.*.map.json
 /android/app/release
 
 todo
+.wrangler/
