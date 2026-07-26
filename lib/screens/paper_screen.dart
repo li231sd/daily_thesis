@@ -18,8 +18,8 @@ import '../services/profile_storage.dart';
 import '../widgets/shimmer_loader.dart';
 import '../widgets/reveal.dart';
 import '../widgets/press_button.dart';
-import '../widgets/citation_badge.dart';
 import '../widgets/preprint_disclaimer.dart';
+import '../widgets/paper_header.dart';
 import '../widgets/math_text.dart';
 import '../theme/app_theme.dart';
 import 'history_screen.dart';
@@ -93,14 +93,43 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
       _profile = profile;
       selectedSubjects = profile?.matchedSubjects;
     });
+
+    final history = await _historyStorage.load();
+    final now = DateTime.now();
+
+    // Find the most recent non-disliked paper saved today.
+    // This ensures that skipping a paper earlier in the day won't cause
+    // the app to force a new fetch on reopen.
+    final todayEntry = history.cast<PaperHistoryEntry?>().firstWhere(
+      (entry) {
+        if (entry == null) return false;
+        final viewedAt = entry.viewedAt;
+        final isToday = viewedAt.year == now.year &&
+            viewedAt.month == now.month &&
+            viewedAt.day == now.day;
+        return isToday && entry.status != PaperFeedbackStatus.disliked;
+      },
+      orElse: () => null,
+    );
+
+    if (todayEntry != null) {
+      _dislikeCounts = await _feedbackStorage.loadDislikeCounts();
+      final subjects = selectedSubjects ?? const [];
+      _currentSubject = subjects.isEmpty
+          ? null
+          : InterestMatcher.subjectForToday(subjects, dislikeCounts: _dislikeCounts);
+      setState(() {
+        _paper = todayEntry.paper;
+        isLoading = false;
+      });
+      unawaited(_refillBuffer());
+      return;
+    }
+
     fetchDailyPaper();
   }
 
   /// True if the device currently has some form of network connection.
-  /// This is a quick local check (not a real reachability probe), so it's
-  /// used to skip straight to the offline buffer instead of waiting out a
-  /// 20-second timeout — the actual fetch call is still the source of
-  /// truth if this check is wrong (e.g. captive portal Wi-Fi).
   Future<bool> _hasConnection() async {
     final result = await Connectivity().checkConnectivity();
     return !result.contains(ConnectivityResult.none);
@@ -120,9 +149,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
     };
   }
 
-  /// Tops up the offline buffer while we have a connection. Fire-and-forget
-  /// — never blocks the UI and any failure here is silently ignored, since
-  /// the buffer is a nice-to-have, not the primary path.
+  /// Tops up the offline buffer while we have a connection.
   Future<void> _refillBuffer() async {
     try {
       if (await _bufferStorage.count() >= PaperBufferStorage.targetSize) return;
@@ -141,8 +168,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         await _bufferStorage.addIfRoom(candidates, excludeUrls: excludeUrls);
       }
     } catch (_) {
-      // Buffer refill is best-effort; a failure here shouldn't surface to
-      // the user or interrupt whatever they're doing.
+      // Buffer refill is best-effort
     }
   }
 
@@ -220,9 +246,6 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
       _dislikeCounts[_currentSubject!] = (_dislikeCounts[_currentSubject!] ?? 0) + 1;
     }
 
-    // Persist the dismissal so this specific paper is excluded going
-    // forward — including after the app is closed and reopened, not just
-    // for the rest of this session.
     await _dismissedStorage.add(dismissedPaper.url);
     await _historyStorage.updateStatus(dismissedPaper.url, PaperFeedbackStatus.disliked);
 
@@ -560,114 +583,13 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
       key: const ValueKey('content'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Eyebrow ──────────────────────────────────────────────────────
-        Reveal(
-          child: Text(
-            hasError
-                ? 'NOTICE'
-                : (_profile != null && _profile!.name.isNotEmpty
-                    ? "FOR ${_profile!.name.toUpperCase()}"
-                    : "TODAY'S INSIGHT"),
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: hasError ? palette.danger : palette.textTertiary,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ),
-
-        // ── Offline badge ───────────────────────────────────────────────
-        if (!hasError && _isOffline) ...[
-          const SizedBox(height: 8),
-          Reveal(
-            delay: const Duration(milliseconds: 20),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.cloud_off_rounded, size: 13, color: palette.textTertiary),
-                const SizedBox(width: 6),
-                Text(
-                  'OFFLINE · FROM YOUR SAVED QUEUE',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.0,
-                    color: palette.textTertiary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-        const SizedBox(height: 12),
-
-        // ── Title ────────────────────────────────────────────────────────
-        Reveal(
-          delay: const Duration(milliseconds: 40),
-          child: MathText(
-            hasError ? errorTitle : (paper?.title ?? ''),
-            style: TextStyle(
-              fontFamily: 'Georgia',
-              fontWeight: FontWeight.w700,
-              fontSize: 26,
-              height: 1.25,
-              color: palette.textPrimary,
-            ),
-          ),
-        ),
-
-        // ── Authors ───────────────────────────────────────────────────────
-        if (!hasError && paper != null && paper.authors.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Reveal(
-            delay: const Duration(milliseconds: 80),
-            child: Text(
-              paper.authors,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
-                color: palette.textSecondary,
-              ),
-            ),
-          ),
-        ],
-
-        // ── Journal ───────────────────────────────────────────────────────
-        if (!hasError && paper != null && paper.journal.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Reveal(
-            delay: const Duration(milliseconds: 120),
-            child: Text(
-              paper.publishYear != null
-                  ? '${paper.journal}, ${paper.publishYear}'
-                  : paper.journal,
-              style: TextStyle(fontSize: 13, color: palette.textTertiary),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-
-        // ── Citations ─────────────────────────────────────────────────────
-        if (!hasError && paper != null && paper.citationCount != null) ...[
-          const SizedBox(height: 8),
-          Reveal(
-            delay: const Duration(milliseconds: 140),
-            child: CitationBadge(paper.citationCount!),
-          ),
-        ],
-
-        // ── Divider ───────────────────────────────────────────────────────
-        Reveal(
-          delay: const Duration(milliseconds: 160),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24.0),
-            child: Divider(
-              height: 1,
-              thickness: 0.75,
-              color: palette.borderSoft,
-            ),
-          ),
+        // ── Header (eyebrow, title, context window, byline, divider) ──────
+        PaperHeader(
+          hasError: hasError,
+          errorTitle: errorTitle,
+          profile: _profile,
+          isOffline: _isOffline,
+          paper: paper,
         ),
 
         // ── Abstract ─────────────────────────────────────────────────────
