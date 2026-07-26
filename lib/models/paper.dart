@@ -1,3 +1,7 @@
+import 'package:html_unescape/html_unescape.dart';
+
+final _unescape = HtmlUnescape();
+
 class Paper {
   final String title;
   final String abstract;
@@ -19,11 +23,6 @@ class Paper {
     required this.source,
   });
 
-  // Preprint servers host work that hasn't gone through formal peer
-  // review — as opposed to PubMed/OpenAlex/Semantic Scholar, which mostly
-  // index already-published, peer-reviewed work. Keep this list in sync
-  // with the Worker's provider list (fetchFromArxiv/ChemRxiv/BioRxiv/
-  // MedRxiv `source` values).
   static const _preprintSources = {'arxiv', 'chemrxiv', 'biorxiv', 'medrxiv'};
 
   bool get isPreprint => _preprintSources.contains(source);
@@ -60,39 +59,63 @@ class Paper {
         'source': source,
       };
 
-    static String _authorsFromJson(dynamic authorsJson) {
-      if (authorsJson is String) {
-        return authorsJson.trim();
-      }
+  /// Cleans raw text by unescaping HTML entities, replacing raw un-delimited
+  /// LaTeX commands, and normalizing whitespace.
+  static String _cleanText(String? rawText, {String fallback = ''}) {
+    if (rawText == null || rawText.isEmpty) return fallback;
 
-      if (authorsJson is List<dynamic>) {
-        final authorList = authorsJson
-            .take(3)
-            .map((a) => a is Map<String, dynamic>
-                ? a['name'] as String? ?? ''
-                : '')
-            .where((name) => name.isNotEmpty)
-            .join(', ');
-        final totalAuthors = authorsJson.length;
-        return totalAuthors > 3 ? '$authorList et al.' : authorList;
-      }
+    // 1. Unescape HTML entities (e.g. &#x2009;, &amp;)
+    var text = _unescape.convert(rawText);
 
-      return '';
+    // 2. Fix common raw LaTeX markup without dollar delimiters
+    text = text
+        // Degrees: {\textdegree}, \textdegree, \degree
+        .replaceAll(RegExp(r'\{\\textdegree\}|\\textdegree|\\degree'), '°')
+        // Superscripts / Subscripts embedded in text (e.g., cm 3 or cm^3)
+        .replaceAll(RegExp(r'\\text\{(\w+)\}'), r'$1')
+        .replaceAll(RegExp(r'\\mathrm\{(\w+)\}'), r'$1')
+        // Common Greek letters used outside math mode
+        .replaceAll(RegExp(r'\\mu\b'), 'μ')
+        .replaceAll(RegExp(r'\\alpha\b'), 'α')
+        .replaceAll(RegExp(r'\\beta\b'), 'β')
+        .replaceAll(RegExp(r'\\gamma\b'), 'γ')
+        .replaceAll(RegExp(r'\\pm\b'), '±')
+        .replaceAll(RegExp(r'\\times\b'), '×');
+
+    // 3. Normalize remaining extra spaces
+    return text.replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
+  static String _authorsFromJson(dynamic authorsJson) {
+    if (authorsJson is String) {
+      return _cleanText(authorsJson);
     }
 
-  factory Paper.fromJson(Map<String, dynamic> json) {
-      final authors = _authorsFromJson(json['authors']);
+    if (authorsJson is List<dynamic>) {
+      final authorList = authorsJson
+          .take(3)
+          .map((a) => a is Map<String, dynamic>
+              ? _cleanText(a['name'] as String?)
+              : '')
+          .where((name) => name.isNotEmpty)
+          .join(', ');
+      final totalAuthors = authorsJson.length;
+      return totalAuthors > 3 ? '$authorList et al.' : authorList;
+    }
 
+    return '';
+  }
+
+  factory Paper.fromJson(Map<String, dynamic> json) {
     return Paper(
-      title: (json['title'] as String? ?? 'Untitled')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .trim(),
-      abstract: (json['abstract'] as String? ?? 'No abstract available.')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .trim(),
-      authors: authors,
-      journal: json['journal'] as String? ?? '',
-      url: json['url'] as String? ?? '',
+      title: _cleanText(json['title'] as String?, fallback: 'Untitled'),
+      abstract: _cleanText(
+        json['abstract'] as String?,
+        fallback: 'No abstract available.',
+      ),
+      authors: _authorsFromJson(json['authors']),
+      journal: _cleanText(json['journal'] as String?),
+      url: (json['url'] as String? ?? '').trim(),
       citationCount: json['citationCount'] as int?,
       publishYear: (json['publishYear'] as int?) ?? (json['year'] as int?),
       source: json['source'] as String? ?? 'openalex',

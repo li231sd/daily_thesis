@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/paper_history_storage.dart';
 import '../theme/app_theme.dart';
+import '../widgets/math_text.dart';
 
 /// Small pill showing whether a history entry was liked or marked "not
 /// for me", so History no longer looks identical for every paper
@@ -71,8 +72,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> _openPaper(String url) async {
     final uri = Uri.parse(url);
     final launchUri = (uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https'))
-    ? uri
-    : Uri.parse('https://$url');
+        ? uri
+        : Uri.parse('https://$url');
     await launchUrl(launchUri, mode: LaunchMode.externalApplication);
   }
 
@@ -97,7 +98,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(icon: Icon(Icons.refresh_rounded, size: 20, color: palette.textPrimary), onPressed: _refresh),
+          IconButton(
+            icon: Icon(Icons.refresh_rounded, size: 20, color: palette.textPrimary),
+            onPressed: _refresh,
+          ),
         ],
       ),
       body: FutureBuilder<List<PaperHistoryEntry>>(
@@ -151,7 +155,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: Text(
+                              child: MathText(
                                 paper.title,
                                 style: TextStyle(
                                   fontFamily: 'Georgia',
