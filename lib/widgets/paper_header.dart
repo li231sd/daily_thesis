@@ -95,29 +95,11 @@ class PaperHeader extends StatelessWidget {
           ),
         ),
 
-        // ── Context Window ───────────────────────────────────────────────
-        // Closed by default; the reader taps to expand and only then do we
-        // fetch/generate the plain-language summary + key terms.
-        if (!hasError && paper != null && paper.url.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Reveal(
-            delay: const Duration(milliseconds: 60),
-            child: ContextWindow(
-              paperId: paper.url,
-              title: paper.title,
-              abstract: paper.abstract,
-              field: profile?.interests.isNotEmpty == true
-                  ? profile!.interests.first
-                  : null,
-            ),
-          ),
-        ],
-
         // ── Authors ───────────────────────────────────────────────────────
         if (!hasError && paper != null && paper.authors.isNotEmpty) ...[
           const SizedBox(height: 16),
           Reveal(
-            delay: const Duration(milliseconds: 80),
+            delay: const Duration(milliseconds: 60),
             child: Text(
               paper.authors,
               style: TextStyle(
@@ -133,7 +115,7 @@ class PaperHeader extends StatelessWidget {
         if (!hasError && paper != null && paper.journal.isNotEmpty) ...[
           const SizedBox(height: 8),
           Reveal(
-            delay: const Duration(milliseconds: 120),
+            delay: const Duration(milliseconds: 80),
             child: Text(
               paper.publishYear != null
                   ? '${paper.journal}, ${paper.publishYear}'
@@ -148,8 +130,26 @@ class PaperHeader extends StatelessWidget {
         if (!hasError && paper != null && paper.citationCount != null) ...[
           const SizedBox(height: 8),
           Reveal(
-            delay: const Duration(milliseconds: 140),
+            delay: const Duration(milliseconds: 120),
             child: CitationBadge(paper.citationCount!),
+          ),
+        ],
+
+        // ── Context Window ───────────────────────────────────────────────
+        // Closed by default; the reader taps to expand and only then do we
+        // fetch/generate the plain-language summary + key terms.
+        if (!hasError && paper != null && paper.url.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Reveal(
+            delay: const Duration(milliseconds: 140),
+            child: ContextWindow(
+              paperId: paper.url,
+              title: paper.title,
+              abstract: paper.abstract,
+              field: profile?.interests.isNotEmpty == true
+                  ? profile!.interests.first
+                  : null,
+            ),
           ),
         ],
 
