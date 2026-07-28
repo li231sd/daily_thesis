@@ -32,7 +32,8 @@ class PaperScreen extends StatefulWidget {
   State<PaperScreen> createState() => _PaperScreenState();
 }
 
-class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin {
+class _PaperScreenState extends State<PaperScreen>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final _service = PaperService();
   final _profileStorage = ProfileStorage();
   final _historyStorage = PaperHistoryStorage();
@@ -54,6 +55,11 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
   // connection, or because the live fetch failed).
   bool _isOffline = false;
 
+  // Tracks the calendar day the currently-shown paper was loaded on, so we
+  // can detect "app was left open/backgrounded across midnight" and force
+  // a refresh when it's noticed again (e.g. on resume).
+  DateTime? _lastLoadedDay;
+
   Map<String, int> _dislikeCounts = {};
   String? _currentSubject;
   int _subjectRotationIndex = 0;
@@ -68,6 +74,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _refreshCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -78,8 +85,40 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _refreshCtrl.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkForNewDay();
+    }
+  }
+
+  /// Marks the currently loaded paper as belonging to "today", using the
+  /// current wall-clock date.
+  void _markLoadedToday() {
+    _lastLoadedDay = DateTime.now();
+  }
+
+  /// Called whenever the app comes back to the foreground. If the paper
+  /// on screen was loaded on a previous calendar day (e.g. the user kept
+  /// the app open/backgrounded overnight instead of fully closing it),
+  /// forces a fresh fetch so the recommendation updates without requiring
+  /// a manual reload.
+  void _checkForNewDay() {
+    if (_lastLoadedDay == null || isLoading) return;
+
+    final now = DateTime.now();
+    final sameDay = _lastLoadedDay!.year == now.year &&
+        _lastLoadedDay!.month == now.month &&
+        _lastLoadedDay!.day == now.day;
+
+    if (!sameDay) {
+      fetchDailyPaper();
+    }
   }
 
   Future<void> _loadLikedUrls() async {
@@ -122,6 +161,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         _paper = todayEntry.paper;
         isLoading = false;
       });
+      _markLoadedToday();
       unawaited(_refillBuffer());
       return;
     }
@@ -185,6 +225,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
       _isOffline = true;
       isLoading = false;
     });
+    _markLoadedToday();
     return true;
   }
 
@@ -225,6 +266,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         _paper = paper;
         isLoading = false;
       });
+      _markLoadedToday();
       unawaited(_refillBuffer());
     } on Exception catch (e) {
       if (await _tryServeFromBuffer()) return;
@@ -292,6 +334,7 @@ class _PaperScreenState extends State<PaperScreen> with TickerProviderStateMixin
         isLoading = false;
         _isOffline = false;
       });
+      _markLoadedToday();
       unawaited(_refillBuffer());
     } on Exception catch (e) {
       if (await _tryServeFromBuffer()) return;
