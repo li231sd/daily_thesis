@@ -43,6 +43,12 @@ class _ContextWindowState extends State<ContextWindow>
   PaperContext? _context;
   int _retryAfterSeconds = 60;
 
+  // Drives the skeleton loader's shimmer pulse while context is loading.
+  late final AnimationController _shimmerCtrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..repeat(reverse: true);
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +70,12 @@ class _ContextWindowState extends State<ContextWindow>
       });
       if (_expanded) _fetch();
     }
+  }
+
+  @override
+  void dispose() {
+    _shimmerCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _fetch() async {
@@ -183,24 +195,8 @@ class _ContextWindowState extends State<ContextWindow>
         return const SizedBox.shrink();
       case _LoadState.loading:
         return _paddedBody(
-          child: Row(
-            children: [
-              SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: palette.textTertiary,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Generating context…',
-                style: TextStyle(fontSize: 13, color: palette.textTertiary),
-              ),
-            ],
-          ),
           palette: palette,
+          child: _buildSkeleton(palette),
         );
       case _LoadState.error:
         return _paddedBody(
@@ -290,6 +286,60 @@ class _ContextWindowState extends State<ContextWindow>
           ),
         );
     }
+  }
+
+  /// Placeholder shape mirroring the loaded layout: a few summary lines
+  /// of decreasing width, followed by a smaller "key terms" block. Bars
+  /// pulse in opacity via [_shimmerCtrl] to read clearly as "loading"
+  /// rather than a rendering glitch.
+  Widget _buildSkeleton(AppPalette palette) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Summary lines
+        _skeletonBar(palette, width: double.infinity, height: 13),
+        const SizedBox(height: 8),
+        _skeletonBar(palette, width: double.infinity, height: 13),
+        const SizedBox(height: 8),
+        _skeletonBar(palette, width: 160, height: 13),
+
+        const SizedBox(height: 18),
+
+        // "KEY TERMS" label placeholder
+        _skeletonBar(palette, width: 68, height: 9),
+        const SizedBox(height: 10),
+
+        // Key term rows (label + definition line)
+        _skeletonBar(palette, width: 90, height: 12),
+        const SizedBox(height: 6),
+        _skeletonBar(palette, width: double.infinity, height: 12),
+        const SizedBox(height: 14),
+        _skeletonBar(palette, width: 110, height: 12),
+        const SizedBox(height: 6),
+        _skeletonBar(palette, width: 200, height: 12),
+      ],
+    );
+  }
+
+  Widget _skeletonBar(
+    AppPalette palette, {
+    required double width,
+    required double height,
+  }) {
+    return AnimatedBuilder(
+      animation: _shimmerCtrl,
+      builder: (context, child) {
+        final opacity = 0.3 + (0.35 * _shimmerCtrl.value);
+        return Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: palette.textTertiary.withValues(alpha: opacity),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        );
+      },
+    );
   }
 
   Widget _paddedBody({required Widget child, required AppPalette palette}) {
