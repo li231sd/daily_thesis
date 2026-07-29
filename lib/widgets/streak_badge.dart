@@ -1,31 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../models/streak_data.dart';
 import '../theme/app_theme.dart';
 
-/// Enum representing the status of a specific day in the weekly calendar
 enum DayStreakStatus {
-  completed, // Day target met (Orange Fire)
-  frozen,    // Day saved by Streak Freeze (Blue Ice)
-  missed,    // Missed day or prior day without activity (Grey X)
-  future,    // Future day not reached yet
+  completed,
+  frozen,
+  missed,
+  pending, // today, not logged yet — neutral, not a failure
+  future,
 }
 
 class StreakBadge extends StatelessWidget {
-  final int currentStreak;
-  final int freezesAvailable;
-  final bool atRisk;
-
-  /// Optional map of weekday indices (0 = Monday, 6 = Sunday) to status.
-  /// If not provided, it infers status based on current streak & atRisk flag.
-  final Map<int, DayStreakStatus>? weeklyStatuses;
+  final StreakData streakData;
 
   const StreakBadge({
     super.key,
-    required this.currentStreak,
-    required this.freezesAvailable,
-    this.atRisk = false,
-    this.weeklyStatuses,
+    required this.streakData,
   });
+
+  int get currentStreak => streakData.currentStreak;
+  int get freezesAvailable => streakData.freezesAvailable;
+  bool get atRisk => streakData.atRisk;
 
   void _showStreakInfoModal(BuildContext context) {
     HapticFeedback.lightImpact();
@@ -37,165 +33,160 @@ class StreakBadge extends StatelessWidget {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) {
-        return SafeArea(
-          child: Container(
-            decoration: BoxDecoration(
-              color: palette.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              boxShadow: [
-                BoxShadow(
-                  color: palette.shadow,
-                  blurRadius: 30,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 12,
-                bottom: MediaQuery.paddingOf(context).bottom + 16,
+        // REMOVED SafeArea here so the background stretches to the very bottom
+        return Container(
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: palette.shadow,
+                blurRadius: 30,
+                offset: const Offset(0, -4),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Drag Handle
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: palette.border,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
+            ],
+          ),
+          child: Padding(
+            // The MediaQuery padding handles the safe area perfectly inside the modal
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 12,
+              bottom: MediaQuery.paddingOf(context).bottom + 16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: palette.border,
+                      borderRadius: BorderRadius.circular(999),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                ),
+                const SizedBox(height: 20),
 
-                  // Header Status Block
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: flameColor.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.local_fire_department_rounded,
-                          color: flameColor,
-                          size: 28,
-                        ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: flameColor.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(width: 14),
+                      child: Icon(
+                        Icons.local_fire_department_rounded,
+                        color: flameColor,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$currentStreak Day Streak',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: palette.textPrimary,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            atRisk
+                                ? 'Read a paper today to keep your streak active'
+                                : 'You\'re on track! Keep reading daily.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: palette.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                Text(
+                  'WEEKLY ACTIVITY',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                    color: palette.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildWeeklyTracker(context, palette),
+
+                const SizedBox(height: 20),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: palette.buttonSecondary,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: palette.buttonSecondaryBorder.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.ac_unit_rounded,
+                        size: 18,
+                        color: Colors.lightBlue.shade400,
+                      ),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '$currentStreak Day Streak',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: palette.textPrimary,
-                                letterSpacing: -0.3,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              atRisk
-                                  ? 'Read a paper today to keep your streak active'
-                                  : 'You\'re on track! Keep reading daily.',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: palette.textSecondary,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          freezesAvailable > 0
+                              ? '$freezesAvailable Freeze Available (Auto-protects missed days)'
+                              : '0 Freezes Remaining (Earn 1 every 7-day streak)',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w500,
+                            color: palette.buttonSecondaryText,
+                          ),
                         ),
                       ),
                     ],
                   ),
+                ),
 
-                  const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-                  // Visual 7-Day Activity Bar
-                  Text(
-                    'WEEKLY ACTIVITY',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                      color: palette.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildWeeklyTracker(palette),
-
-                  const SizedBox(height: 20),
-
-                  // Freeze Protection Pill / Card
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: palette.buttonSecondary,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: palette.buttonSecondaryBorder.withValues(alpha: 0.5),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      backgroundColor: palette.buttonSecondary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.ac_unit_rounded,
-                          size: 18,
-                          color: Colors.lightBlue.shade400,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            freezesAvailable > 0
-                                ? '$freezesAvailable Freeze Available (Auto-protects missed days)'
-                                : '0 Freezes Remaining (Earn 1 every 7-day streak)',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w500,
-                              color: palette.buttonSecondaryText,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Secondary Close Action
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: TextButton.styleFrom(
-                        backgroundColor: palette.buttonSecondary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: Text(
-                        'Back to Reading',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: palette.buttonSecondaryText,
-                        ),
+                    child: Text(
+                      'Back to Reading',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: palette.buttonSecondaryText,
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );
@@ -203,42 +194,49 @@ class StreakBadge extends StatelessWidget {
     );
   }
 
-  /// Evaluates status for each day (0 = Monday, 6 = Sunday)
-  DayStreakStatus _getDayStatus(int dayIndex, int todayIndex) {
-    if (weeklyStatuses != null && weeklyStatuses!.containsKey(dayIndex)) {
-      return weeklyStatuses![dayIndex]!;
-    }
+  /// Maps specific Date instances of current week to exact DayStreakStatus from history
+  DayStreakStatus _getDayStatusForDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final targetDate = DateTime(date.year, date.month, date.day);
 
-    if (dayIndex > todayIndex) {
+    if (targetDate.isAfter(today)) {
       return DayStreakStatus.future;
     }
 
-    if (dayIndex == todayIndex) {
-      return atRisk ? DayStreakStatus.missed : DayStreakStatus.completed;
+    final key = StreakData.dateKey(date);
+    final status = streakData.history[key];
+
+    switch (status) {
+      case DayStatus.completed:
+        return DayStreakStatus.completed;
+      case DayStatus.frozen:
+        return DayStreakStatus.frozen;
+      case DayStatus.missed:
+        return DayStreakStatus.missed;
+      case null:
+        return targetDate.isAtSameMomentAs(today)
+            ? DayStreakStatus.pending
+            : DayStreakStatus.missed;
     }
-
-    // Default fallback calculation for past days:
-    // If streak covers this past day, count as completed; otherwise missed.
-    final daysAgo = todayIndex - dayIndex;
-    final effectiveStreak = atRisk ? currentStreak : currentStreak - 1;
-
-    if (daysAgo <= effectiveStreak) {
-      return DayStreakStatus.completed;
-    }
-
-    return DayStreakStatus.missed;
   }
 
-  /// Builds a visual 7-day streak progress bar (M T W T F S S)
-  Widget _buildWeeklyTracker(AppPalette palette) {
-    const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    final todayIndex = (DateTime.now().weekday - 1) % 7;
+  Widget _buildWeeklyTracker(BuildContext context, AppPalette palette) {
+    const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    final now = DateTime.now();
+
+    // Calculate Monday date for current week
+    final monday = now.subtract(Duration(days: now.weekday - 1));
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(7, (index) {
-        final isToday = index == todayIndex;
-        final status = _getDayStatus(index, todayIndex);
+        final date = monday.add(Duration(days: index));
+        final isToday = date.day == now.day &&
+            date.month == now.month &&
+            date.year == now.year;
+
+        final status = _getDayStatusForDate(date);
 
         Color circleColor;
         Color borderColor;
@@ -258,12 +256,13 @@ class StreakBadge extends StatelessWidget {
             break;
 
           case DayStreakStatus.frozen:
-            circleColor = Colors.lightBlue.shade50;
-            borderColor = Colors.lightBlue.shade300;
+            // MATCHES completed (fire) design pattern
+            circleColor = Colors.lightBlue.shade400.withValues(alpha: 0.15);
+            borderColor = Colors.lightBlue.shade400;
             textColor = palette.textPrimary;
             child = Icon(
               Icons.ac_unit_rounded,
-              size: 15,
+              size: 16, // Matches the fire size
               color: Colors.lightBlue.shade400,
             );
             break;
@@ -279,12 +278,26 @@ class StreakBadge extends StatelessWidget {
             );
             break;
 
+          case DayStreakStatus.pending:
+            circleColor = palette.buttonSecondary;
+            borderColor = palette.buttonSecondaryBorder.withValues(alpha: 0.3);
+            textColor = palette.textSecondary;
+            child = Text(
+              dayLabels[index],
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
+            );
+            break;
+
           case DayStreakStatus.future:
             circleColor = palette.buttonSecondary;
             borderColor = palette.buttonSecondaryBorder.withValues(alpha: 0.3);
             textColor = palette.textSecondary;
             child = Text(
-              days[index],
+              dayLabels[index],
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -303,8 +316,10 @@ class StreakBadge extends StatelessWidget {
                 color: circleColor,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isToday && status != DayStreakStatus.missed
-                      ? flameColorForState()
+                  color: isToday &&
+                          status != DayStreakStatus.missed &&
+                          status != DayStreakStatus.pending
+                      ? (atRisk ? Colors.grey : Colors.deepOrange)
                       : borderColor,
                   width: isToday ? 2 : 1,
                 ),
@@ -313,7 +328,7 @@ class StreakBadge extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              days[index],
+              dayLabels[index],
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
@@ -324,10 +339,6 @@ class StreakBadge extends StatelessWidget {
         );
       }),
     );
-  }
-
-  Color flameColorForState() {
-    return atRisk ? Colors.grey : Colors.deepOrange;
   }
 
   @override

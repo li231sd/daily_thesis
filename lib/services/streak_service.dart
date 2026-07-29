@@ -8,8 +8,8 @@ class StreakResult {
   final bool streakBroken;
   final bool freezeConsumed;
   final int freezesAvailable;
-  final int? milestoneHit; // non-null if a milestone was just reached
-  final int previousStreak; // streak value before this evaluation ran
+  final int previousStreak;
+  final int? milestoneHit;
 
   StreakResult({
     required this.currentStreak,
@@ -31,97 +31,126 @@ class StreakService {
   final StreakStorage _storage;
   StreakService({StreakStorage? storage}) : _storage = storage ?? StreakStorage();
 
-  DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
-
-  /// True if the qualifying activity has already been recorded today —
-  /// used to skip starting the session timer again this session.
-  Future<bool> hasLoggedToday() async {
-    final s = await _storage.load();
-    if (s.lastActiveDate == null) return false;
-    return _dateOnly(s.lastActiveDate!) == _dateOnly(DateTime.now());
+  Future<StreakData> getStreakData() async {
+    return await _storage.load();
   }
 
-  StreakResult _unchanged(StreakData s) => StreakResult(
-        currentStreak: s.currentStreak,
+  Future<bool> hasLoggedToday() async {
+    final s = await _storage.load();
+    final todayKey = StreakData.dateKey(DateTime.now());
+    return s.history[todayKey] == DayStatus.completed;
+  }
+
+  /// Runs on app start/resume. Checks past unrecorded days and fills gaps with
+  /// freezes (if available) or marks them as missed.
+  Future<StreakResult> evaluateOnOpen() async {
+    var s = await _storage.load();
+    final previousStreak = s.currentStreak;
+    final today = DateTime.now();
+
+    // If there's no history at all (new user), nothing to evaluate
+    if (s.history.isEmpty) {
+      return StreakResult(
+        currentStreak: 0,
         longestStreak: s.longestStreak,
         streakIncreased: false,
         streakBroken: false,
         freezeConsumed: false,
         freezesAvailable: s.freezesAvailable,
-        previousStreak: s.currentStreak,
-      );
-
-  /// Call once per app session (launch/resume), BEFORE recording any new
-  /// activity. Resolves whether a missed day should consume a freeze or
-  /// break the streak, so the UI can reflect "streak at risk" state even
-  /// before the user does anything today.
-  Future<StreakResult> evaluateOnOpen() async {
-    final s = await _storage.load();
-    if (s.lastActiveDate == null) return _unchanged(s);
-
-    final today = _dateOnly(DateTime.now());
-    final gap = today.difference(_dateOnly(s.lastActiveDate!)).inDays;
-
-    if (gap <= 1) return _unchanged(s); // still current, or already logged today
-
-    final missedDays = gap - 1;
-    if (missedDays <= s.freezesAvailable) {
-      final updated = s.copyWith(
-        freezesAvailable: s.freezesAvailable - missedDays,
-        lastActiveDate: today.subtract(const Duration(days: 1)),
-      );
-      await _storage.save(updated);
-      return StreakResult(
-        currentStreak: updated.currentStreak,
-        longestStreak: updated.longestStreak,
-        streakIncreased: false,
-        streakBroken: false,
-        freezeConsumed: true,
-        freezesAvailable: updated.freezesAvailable,
-        previousStreak: s.currentStreak,
+        previousStreak: 0,
       );
     }
 
-    final broken = s.currentStreak;
-    final reset = s.copyWith(currentStreak: 0, clearLastActiveDate: true);
-    await _storage.save(reset);
+    DateTime check = today.subtract(const Duration(days: 1));
+    final newHistory = Map<String, DayStatus>.from(s.history);
+    var remainingFreezes = s.freezesAvailable;
+    bool freezeConsumed = false;
+    bool streakBroken = false;
+
+    while (true) {
+      final key = StreakData.dateKey(check);
+
+      // 1. Stop scanning if we hit an already recorded date in history
+      if (newHistory.containsKey(key)) {
+        break;
+      }
+
+      // 2. Safety cap: Stop scanning if we go back further than 14 days 
+      // to prevent infinite loops on orphaned/corrupted states
+      if (today.difference(check).inDays > 14) {
+        break;
+      }
+
+      // Handle missing day
+      if (remainingFreezes > 0) {
+        newHistory[key] = DayStatus.frozen;
+        remainingFreezes--;
+        freezeConsumed = true;
+      } else {
+        newHistory[key] = DayStatus.missed;
+        streakBroken = true;
+      }
+
+      check = check.subtract(const Duration(days: 1));
+    }
+
+    s = s.copyWith(
+      freezesAvailable: remainingFreezes,
+      history: newHistory,
+    );
+
+    await _storage.save(s);
+
     return StreakResult(
-      currentStreak: 0,
-      longestStreak: reset.longestStreak,
+      currentStreak: s.currentStreak,
+      longestStreak: s.longestStreak,
       streakIncreased: false,
-      streakBroken: broken > 0,
-      freezeConsumed: false,
-      freezesAvailable: reset.freezesAvailable,
-      previousStreak: broken,
+      streakBroken: streakBroken,
+      freezeConsumed: freezeConsumed,
+      freezesAvailable: s.freezesAvailable,
+      previousStreak: previousStreak,
     );
   }
 
-  /// Call when the user completes today's qualifying activity (e.g. opens
-  /// the full paper). Safe to call more than once per day — only the
-  /// first call each day changes anything.
+  /// Records reading/activity completion for today.
   Future<StreakResult> recordActivity() async {
-    final today = _dateOnly(DateTime.now());
-    final current = await _storage.load();
-
-    if (current.lastActiveDate != null &&
-        _dateOnly(current.lastActiveDate!) == today) {
-      return _unchanged(current); // already logged today
-    }
-
-    // Resolve any pending gap first, in case this runs without
-    // evaluateOnOpen having run yet this session.
+    // Resolve gaps first
     final gapResult = await evaluateOnOpen();
-    final s = await _storage.load();
+    var s = await _storage.load();
 
-    var newStreak = s.currentStreak + 1;
-    var newLongest = newStreak > s.longestStreak ? newStreak : s.longestStreak;
-    var newFreezes = s.freezesAvailable;
+    final todayKey = StreakData.dateKey(DateTime.now());
+    final previousStreak = s.currentStreak;
 
-    // Earn 1 Streak Freeze (ice) every 7 days (capped at maxFreezes)
-    if (newStreak % freezeEarnedEveryNDays == 0 && newFreezes < maxFreezes) {
-      newFreezes += 1;
+    // Already logged today?
+    if (s.history[todayKey] == DayStatus.completed) {
+      return StreakResult(
+        currentStreak: s.currentStreak,
+        longestStreak: s.longestStreak,
+        streakIncreased: false,
+        streakBroken: false,
+        freezeConsumed: gapResult.freezeConsumed,
+        freezesAvailable: s.freezesAvailable,
+        previousStreak: previousStreak,
+      );
     }
 
+    final newHistory = Map<String, DayStatus>.from(s.history);
+    newHistory[todayKey] = DayStatus.completed;
+
+    // Temporarily apply history to get new calculated streak
+    var updatedTemp = s.copyWith(history: newHistory);
+    final newStreak = updatedTemp.currentStreak;
+    final newLongest = newStreak > s.longestStreak ? newStreak : s.longestStreak;
+
+    // Award freeze every 7 days
+    var newFreezes = s.freezesAvailable;
+    if (newStreak > 0 &&
+        newStreak % freezeEarnedEveryNDays == 0 &&
+        newFreezes < maxFreezes) {
+      newFreezes++;
+    }
+
+    // Check milestones
     int? milestoneHit;
     final newMilestones = List<int>.from(s.milestonesReached);
     if (milestones.contains(newStreak) && !newMilestones.contains(newStreak)) {
@@ -129,23 +158,23 @@ class StreakService {
       milestoneHit = newStreak;
     }
 
-    final updated = s.copyWith(
-      currentStreak: newStreak,
+    final finalData = s.copyWith(
+      history: newHistory,
       longestStreak: newLongest,
-      lastActiveDate: today,
       freezesAvailable: newFreezes,
       milestonesReached: newMilestones,
     );
-    await _storage.save(updated);
+
+    await _storage.save(finalData);
 
     return StreakResult(
-      currentStreak: updated.currentStreak,
-      longestStreak: updated.longestStreak,
+      currentStreak: finalData.currentStreak,
+      longestStreak: finalData.longestStreak,
       streakIncreased: true,
       streakBroken: gapResult.streakBroken,
       freezeConsumed: gapResult.freezeConsumed,
-      freezesAvailable: updated.freezesAvailable,
-      previousStreak: s.currentStreak,
+      freezesAvailable: finalData.freezesAvailable,
+      previousStreak: previousStreak,
       milestoneHit: milestoneHit,
     );
   }

@@ -88,7 +88,23 @@ class Paper {
 
   static String _authorsFromJson(dynamic authorsJson) {
     if (authorsJson is String) {
-      return _cleanText(authorsJson);
+      final cleanedText = _cleanText(authorsJson);
+      
+      // Academic APIs often use semicolons or 'and' to separate authors in strings
+      if (cleanedText.contains(';')) {
+        final authorsList = cleanedText
+            .split(';')
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .toList();
+            
+        if (authorsList.length > 3) {
+          return '${authorsList.take(3).join(', ')} et al.';
+        }
+        return authorsList.join(', '); // Normalize separator to commas
+      }
+      
+      return cleanedText;
     }
 
     if (authorsJson is List<dynamic>) {

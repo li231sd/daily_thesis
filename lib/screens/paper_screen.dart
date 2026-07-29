@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/paper.dart';
+import '../models/streak_data.dart';
 import '../models/user_profile.dart';
 import '../services/dismissed_papers_storage.dart';
 import '../services/feedback_storage.dart';
@@ -73,11 +74,11 @@ class _PaperScreenState extends State<PaperScreen>
   Set<String> _likedUrls = {};
   bool get _isCurrentLiked => _paper != null && _likedUrls.contains(_paper!.url);
 
-  // Current streak state shown in the app bar badge. Refreshed after
-  // evaluateOnOpen() and after every recordActivity() call.
-  int _currentStreak = 0;
-  int _freezesAvailable = 0;
-  bool _streakAtRisk = false;
+  // Full streak state shown in the app bar badge. Refreshed after
+  // evaluateOnOpen() and after every recordActivity() call. StreakBadge
+  // needs the whole object (not just loose ints) because it renders the
+  // weekly history tracker off streakData.history.
+  StreakData _streakData = const StreakData();
 
   // Tracks the 1-continuous-minute-in-app session used to advance the
   // streak. Per spec, this timer resets (not pauses/resumes) whenever the
@@ -128,11 +129,10 @@ class _PaperScreenState extends State<PaperScreen>
   /// 1-minute session timer that drives today's streak increment.
   Future<void> _initStreak() async {
     final result = await _streakService.evaluateOnOpen();
+    final data = await _streakService.getStreakData();
     if (!mounted) return;
     setState(() {
-      _currentStreak = result.currentStreak;
-      _freezesAvailable = result.freezesAvailable;
-      _streakAtRisk = result.freezeConsumed;
+      _streakData = data;
     });
 
     if (result.freezeConsumed) {
@@ -158,12 +158,11 @@ class _PaperScreenState extends State<PaperScreen>
   Future<void> _onSessionThresholdReached() async {
     _sessionTimer = null;
     final result = await _streakService.recordActivity();
+    final data = await _streakService.getStreakData();
     if (!mounted) return;
     _streakLoggedToday = true;
     setState(() {
-      _currentStreak = result.currentStreak;
-      _freezesAvailable = result.freezesAvailable;
-      _streakAtRisk = false;
+      _streakData = data;
     });
 
     await showStreakIncreasedPopup(
@@ -651,9 +650,7 @@ class _PaperScreenState extends State<PaperScreen>
           child: Padding(
             padding: const EdgeInsets.only(left: 16.0),
             child: StreakBadge(
-              currentStreak: _currentStreak,
-              freezesAvailable: _freezesAvailable,
-              atRisk: _streakAtRisk,
+              streakData: _streakData,
             ),
           ),
         ),

@@ -44,14 +44,20 @@ class _ContextWindowState extends State<ContextWindow>
   int _retryAfterSeconds = 60;
 
   // Drives the skeleton loader's shimmer pulse while context is loading.
-  late final AnimationController _shimmerCtrl = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  )..repeat(reverse: true);
+  // Built eagerly in initState (below) rather than as a lazily-initialized
+  // `late final` field — a lazy initializer only runs on first read, and
+  // the only read path used to be inside dispose(), which constructed the
+  // controller (and its vsync ancestor lookup) after the widget was
+  // already deactivated.
+  late final AnimationController _shimmerCtrl;
 
   @override
   void initState() {
     super.initState();
+    _shimmerCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    )..repeat(reverse: true);
     _expanded = widget.startExpanded;
     if (_expanded) {
       _fetch();
