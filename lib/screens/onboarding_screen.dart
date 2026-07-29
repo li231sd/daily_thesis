@@ -117,10 +117,26 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     // Dedicated full-screen streak explainer, shown once right after
     // onboarding and before the user reaches the main paper feed.
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => StreakIntroScreen(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => StreakIntroScreen(
           onContinue: () => Navigator.of(context).pop(),
         ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final isPopping = animation.status == AnimationStatus.reverse;
+
+          // When entering (push): starts off-screen RIGHT and slides LEFT to center (0,0)
+          // When exiting (pop): slides from center (0,0) off-screen LEFT
+          final begin = isPopping ? const Offset(-1.0, 0.0) : const Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
       ),
     );
 
