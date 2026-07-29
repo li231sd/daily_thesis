@@ -15,12 +15,15 @@ import '../services/paper_buffer_storage.dart';
 import '../services/paper_history_storage.dart';
 import '../services/paper_service.dart';
 import '../services/profile_storage.dart';
+import '../services/streak_service.dart';
 import '../widgets/shimmer_loader.dart';
 import '../widgets/reveal.dart';
 import '../widgets/press_button.dart';
 import '../widgets/preprint_disclaimer.dart';
 import '../widgets/paper_header.dart';
 import '../widgets/math_text.dart';
+import '../widgets/streak_badge.dart';
+import '../widgets/streak_celebration.dart';
 import '../theme/app_theme.dart';
 import 'history_screen.dart';
 import 'settings_screen.dart';
@@ -41,6 +44,7 @@ class _PaperScreenState extends State<PaperScreen>
   final _likedStorage = LikedPapersStorage();
   final _dismissedStorage = DismissedPapersStorage();
   final _bufferStorage = PaperBufferStorage();
+  final _streakService = StreakService();
 
   UserProfile? _profile;
   List<String>? selectedSubjects;
@@ -69,6 +73,18 @@ class _PaperScreenState extends State<PaperScreen>
   Set<String> _likedUrls = {};
   bool get _isCurrentLiked => _paper != null && _likedUrls.contains(_paper!.url);
 
+  // Current streak state shown in the app bar badge. Refreshed after
+  // evaluateOnOpen() and after every recordActivity() call.
+  int _currentStreak = 0;
+  int _freezesAvailable = 0;
+  bool _streakAtRisk = false;
+
+  // Tracks the 1-continuous-minute-in-app session used to advance the
+  // streak. Per spec, this timer resets (not pauses/resumes) whenever the
+  // app leaves the foreground before hitting 60 seconds.
+  Timer? _sessionTimer;
+  bool _streakLoggedToday = false;
+
   late AnimationController _refreshCtrl;
 
   @override
@@ -81,12 +97,14 @@ class _PaperScreenState extends State<PaperScreen>
     );
     _loadProfileAndFetch();
     _loadLikedUrls();
+    _initStreak();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _refreshCtrl.dispose();
+    _sessionTimer?.cancel();
     super.dispose();
   }
 
@@ -94,6 +112,67 @@ class _PaperScreenState extends State<PaperScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _checkForNewDay();
+      _initStreak();
+    } else {
+      // App left the foreground before the 1-minute mark — per spec the
+      // timer resets rather than pausing, so it starts fresh next time
+      // the app is opened/resumed.
+      _sessionTimer?.cancel();
+      _sessionTimer = null;
+    }
+  }
+
+  /// Resolves any missed days (freeze consumption / streak break) as soon
+  /// as the app is opened or resumed, refreshes the badge state, shows
+  /// the corresponding popup if something changed, and (re)starts the
+  /// 1-minute session timer that drives today's streak increment.
+  Future<void> _initStreak() async {
+    final result = await _streakService.evaluateOnOpen();
+    if (!mounted) return;
+    setState(() {
+      _currentStreak = result.currentStreak;
+      _freezesAvailable = result.freezesAvailable;
+      _streakAtRisk = result.freezeConsumed;
+    });
+
+    if (result.freezeConsumed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) showFreezeUsedPopup(context, currentStreak: result.currentStreak);
+      });
+    } else if (result.streakBroken) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) showStreakBrokenPopup(context, previousStreak: result.previousStreak);
+      });
+    }
+
+    _streakLoggedToday = await _streakService.hasLoggedToday();
+    if (!mounted) return;
+    _sessionTimer?.cancel();
+    if (!_streakLoggedToday) {
+      _sessionTimer = Timer(const Duration(minutes: 1), _onSessionThresholdReached);
+    }
+  }
+
+  /// Fired once the user has been continuously in the foreground for 1
+  /// minute on a day the streak hasn't been logged for yet.
+  Future<void> _onSessionThresholdReached() async {
+    _sessionTimer = null;
+    final result = await _streakService.recordActivity();
+    if (!mounted) return;
+    _streakLoggedToday = true;
+    setState(() {
+      _currentStreak = result.currentStreak;
+      _freezesAvailable = result.freezesAvailable;
+      _streakAtRisk = false;
+    });
+
+    await showStreakIncreasedPopup(
+      context,
+      oldStreak: result.previousStreak,
+      newStreak: result.currentStreak,
+    );
+    if (result.milestoneHit != null && mounted) {
+      await showMilestonePopup(context, milestoneDays: result.milestoneHit!);
     }
   }
 
@@ -381,7 +460,8 @@ class _PaperScreenState extends State<PaperScreen>
       final uri = Uri.parse(url);
       final launchUri = uri.hasScheme ? uri : Uri.parse('https://$url');
 
-      if (!await launchUrl(launchUri, mode: LaunchMode.externalApplication) && mounted) {
+      final opened = await launchUrl(launchUri, mode: LaunchMode.externalApplication);
+      if (!opened && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not open the publication link')),
         );
@@ -565,13 +645,15 @@ class _PaperScreenState extends State<PaperScreen>
         backgroundColor: palette.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: Center(
-          child: Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: palette.textPrimary,
-              shape: BoxShape.circle,
+        leadingWidth: 100, // Matches width reserved on the right
+        leading: Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 16.0),
+            child: StreakBadge(
+              currentStreak: _currentStreak,
+              freezesAvailable: _freezesAvailable,
+              atRisk: _streakAtRisk,
             ),
           ),
         ),
@@ -586,11 +668,19 @@ class _PaperScreenState extends State<PaperScreen>
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: Icon(Icons.menu_rounded, size: 24, color: palette.textPrimary),
-            onPressed: _openActionsMenu,
+          SizedBox(
+            width: 100, // Matches leadingWidth so title centers exactly on-screen
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.menu_rounded, size: 24, color: palette.textPrimary),
+                  onPressed: _openActionsMenu,
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(

@@ -5,6 +5,7 @@ import '../services/profile_storage.dart';
 import '../theme/app_theme.dart';
 import '../widgets/interest_picker.dart';
 import '../widgets/press_button.dart';
+import 'streak_intro_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   final VoidCallback onComplete;
@@ -111,6 +112,19 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       Future.delayed(const Duration(milliseconds: 1200)),
     ]);
 
+    if (!mounted) return;
+
+    // Dedicated full-screen streak explainer, shown once right after
+    // onboarding and before the user reaches the main paper feed.
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => StreakIntroScreen(
+          onContinue: () => Navigator.of(context).pop(),
+        ),
+      ),
+    );
+
+    if (!mounted) return;
     widget.onComplete();
   }
 
@@ -222,7 +236,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // Scrollable area featuring an editorial shader-fade effect
             Expanded(
               child: ShaderMask(
@@ -231,9 +245,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: const [
-                      Colors.transparent, 
-                      Colors.white, 
-                      Colors.white, 
+                      Colors.transparent,
+                      Colors.white,
+                      Colors.white,
                       Colors.transparent
                     ],
                     stops: const [0.0, 0.04, 0.94, 1.0],
@@ -250,7 +264,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
             _PrimaryButton(
               label: 'Get Started',
