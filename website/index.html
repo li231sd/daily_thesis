@@ -69,6 +69,7 @@
       window.scrollTo(0, 70);
       window.addEventListener("load", () => window.scrollTo(0, 70));
     </script>
+
     <!-- Navigation -->
     <nav class="navbar" id="navbar">
       <div class="logo">DAILY THESIS</div>
@@ -107,72 +108,34 @@
 
     <!-- Features Section -->
     <section class="features">
-      <!-- Feature 1: Onboarding -->
-      <div class="feature-row">
-        <div class="feature-text">
-          <h2>Tailored to Your Interests</h2>
-          <p>
-            Get started in seconds. Choose from dozens of categories across
-            Computer Science, Medicine, and Biology to create a personalized
-            feed of research you actually want to read.
-          </p>
-        </div>
-        <div class="mockup-group">
-          <div class="mockup-placeholder">
-            <img src="assets/1.png" alt="Welcome Screen" />
-          </div>
-          <div class="mockup-placeholder">
-            <img src="assets/2.png" alt="Topic Selection Screen" />
-          </div>
-        </div>
-      </div>
-
-      <!-- Feature 2: Reading & Dark Mode -->
-      <div class="feature-row reverse">
-        <div class="feature-text">
-          <h2>Frictionless Reading, One-Tap Actions, & Source Transparency</h2>
-          <p>
-            Enjoy clean paper summaries in both light and dark themes. Read full
-            publications, skip irrelevant papers, generate instant citations,
-            and discuss findings with colleagues. Our system will make sure you
-            know if a paper was sourced from a pre-print website.
-          </p>
-        </div>
-        <div class="mockup-group">
-          <div class="mockup-placeholder">
-            <img src="assets/5.png" alt="Paper Quick Actions" />
-          </div>
-          <div class="mockup-placeholder">
-            <img src="assets/7.png" alt="Dark Mode Reading" />
-          </div>
-        </div>
-      </div>
-
-      <!-- Feature 3: Settings & History -->
-      <div class="feature-row">
-        <div class="feature-text">
-          <h2>Total Control & Reading History</h2>
-          <p>
-            Customize your text sizing and appearance preferences whenever you
-            want. Easily revisit past papers and recommendations with built-in
-            reading history tracking.
-          </p>
-        </div>
-        <div class="mockup-group">
-          <div class="mockup-placeholder">
-            <img src="assets/4.png" alt="Settings & Customization" />
-          </div>
-          <div class="mockup-placeholder">
-            <img src="assets/6.png" alt="Reading History" />
-          </div>
-        </div>
-      </div>
-
-      <!-- Feature 4: AI Context Window -->
+      <!-- Feature 2: Reading Streaks -->
       <div class="feature-row reverse">
         <div class="feature-text">
           <h2>
-            Never Get Lost In The Literature <span class="new-flag">New!</span>
+            Build a Reading Habit <span class="new-flag">New in v3.1.0</span>
+          </h2>
+          <p>
+            Read your daily paper and keep the streak alive. Daily Thesis
+            tracks your progress day by day, celebrates the milestones, and
+            gives you the occasional freeze so one busy day doesn't cost you
+            all your momentum.
+          </p>
+        </div>
+        <div class="mockup-group">
+          <div class="mockup-placeholder">
+            <img src="assets/11.png" alt="Day streak started celebration" />
+          </div>
+          <div class="mockup-placeholder">
+            <img src="assets/12.png" alt="Weekly reading streak activity" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature 1: AI Context Window -->
+      <div class="feature-row">
+        <div class="feature-text">
+          <h2>
+            Never Get Lost In The Literature <span class="new-flag">New in v3.0.0</span>
           </h2>
           <p>
             Tap "New to this field?" on any paper and Daily Thesis unpacks it
@@ -191,6 +154,67 @@
               alt="Context Window Summary and Key Terms"
             />
           </div>
+        </div>
+      </div>
+
+      <!-- Feature 3: Onboarding -->
+      <div class="feature-row">
+        <div class="mockup-group">
+          <div class="mockup-placeholder">
+            <img src="assets/1.png" alt="Welcome Screen" />
+          </div>
+          <div class="mockup-placeholder">
+            <img src="assets/2.png" alt="Topic Selection Screen" />
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2>Tailored to Your Interests</h2>
+          <p>
+            Get started in seconds. Choose from dozens of categories across
+            Computer Science, Medicine, and Biology to create a personalized
+            feed of research you actually want to read.
+          </p>
+        </div>
+      </div>
+
+      <!-- Feature 4: Reading & Dark Mode -->
+      <div class="feature-row reverse">
+        <div class="mockup-group">
+          <div class="mockup-placeholder">
+            <img src="assets/5.png" alt="Paper Quick Actions" />
+          </div>
+          <div class="mockup-placeholder">
+            <img src="assets/7.png" alt="Dark Mode Reading" />
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2>Frictionless Reading, One-Tap Actions, & Source Transparency</h2>
+          <p>
+            Enjoy clean paper summaries in both light and dark themes. Read full
+            publications, skip irrelevant papers, generate instant citations,
+            and discuss findings with colleagues. Our system will make sure you
+            know if a paper was sourced from a pre-print website.
+          </p>
+        </div>
+      </div>
+
+      <!-- Feature 5: Settings & History -->
+      <div class="feature-row">
+        <div class="mockup-group">
+          <div class="mockup-placeholder">
+            <img src="assets/4.png" alt="Settings & Customization" />
+          </div>
+          <div class="mockup-placeholder">
+            <img src="assets/6.png" alt="Reading History" />
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2>Total Control & Reading History</h2>
+          <p>
+            Customize your text sizing and appearance preferences whenever you
+            want. Easily revisit past papers and recommendations with built-in
+            reading history tracking.
+          </p>
         </div>
       </div>
     </section>
@@ -215,7 +239,7 @@
               spotty signal.
             </p>
           </div>
-          <div class="carousel-card">
+          <div class="carousel-card carousel-card-visual">
             <h3>Push notifications</h3>
             <p>
               Get pinged the moment a new paper matching your interests lands,
@@ -266,7 +290,12 @@
               spotty signal.
             </p>
           </div>
-          <div class="carousel-card" aria-hidden="true">
+          <div class="carousel-card carousel-card-visual" aria-hidden="true">
+            <img
+              src="assets/notification-card.png"
+              alt=""
+              class="carousel-card-image"
+            />
             <h3>Push notifications</h3>
             <p>
               Get pinged the moment a new paper matching your interests lands,
@@ -338,26 +367,59 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <a
-        href="https://github.com/li231sd/daily_thesis"
-        class="github-btn"
-        target="_blank"
-        rel="noopener"
-      >
-        <svg
-          viewBox="0 0 16 16"
-          width="18"
-          height="18"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"
-          />
-        </svg>
-        Contribute on GitHub
-      </a>
-      <p>&copy; 2026 Daily Thesis. All rights reserved.</p>
+      <div class="footer-container">
+        <!-- Left Side: GitHub, Copyright, Legal -->
+        <div class="footer-left">
+          <a
+            href="https://github.com/li231sd/daily_thesis"
+            class="github-btn"
+            target="_blank"
+            rel="noopener"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              width="18"
+              height="18"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"
+              />
+            </svg>
+            Contribute on GitHub
+          </a>
+          <p class="footer-copy">
+            &copy; 2026 Daily Thesis. All rights reserved.
+          </p>
+          <p class="footer-legal">
+            <a
+              href="https://li231sd.github.io/daily_thesis/privacy-policy.html"
+              target="_blank"
+              rel="noopener"
+              >Privacy Policy</a
+            >
+          </p>
+        </div>
+
+        <!-- Right Side: Equal Horizons attribution -->
+        <div class="footer-right">
+          <span class="footer-brand-label">A product of</span>
+          <a
+            href="https://equal-horizons-github.vercel.app/"
+            target="_blank"
+            rel="noopener"
+            class="footer-brand-link"
+            aria-label="Equal Horizons"
+          >
+            <img
+              src="assets/Banner.png"
+              alt="Equal Horizons"
+              class="footer-brand-banner"
+            />
+          </a>
+        </div>
+      </div>
     </footer>
 
     <script>

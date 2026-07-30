@@ -196,7 +196,7 @@ body {
     }
 }
 
-/* --- Phone Mockup Frames & Layout (Exact 1080x1920 Aspect Ratio) --- */
+/* --- Phone Mockup Frames & Layout --- */
 .mockup-group {
     display: flex;
     gap: 24px;
@@ -206,9 +206,9 @@ body {
 
 .mockup-placeholder {
     width: 260px;
-    aspect-ratio: 9 / 16; /* Enforces exact 1080x1920 proportions for all mockups */
+    aspect-ratio: 9 / 16;
     background-color: var(--accent-black);
-    border-radius: 28px;  /* Calibrated corner radius so top UI elements aren't clipped */
+    border-radius: 28px;
     border: 7px solid var(--accent-black);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
     overflow: hidden;
@@ -224,7 +224,7 @@ body {
 .mockup-placeholder img {
     width: 100%;
     height: 100%;
-    object-fit: cover;    /* Fills the 9:16 frame cleanly without side gaps */
+    object-fit: cover;
     display: block;
 }
 
@@ -236,36 +236,31 @@ body {
     padding: 3px 10px;
     margin-left: 10px;
     vertical-align: middle;
-    
-    /* Typography */
+
     font-family: 'Inter', sans-serif;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.6px;
     text-transform: uppercase;
     color: #ffffff;
-    
-    /* Subtle modern gradient & glass border */
+
     background: linear-gradient(135deg, #2a2a2a 0%, #111111 100%);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 20px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-    
-    /* Positioning alignment with h2 text */
+
     position: relative;
     top: -3px;
-    
-    /* Smooth transitions */
+
     transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
 }
 
-/* Subtle glowing pulse dot before text */
 .new-flag::before {
     content: "";
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background-color: #10b981; /* Premium Emerald Accent Color */
+    background-color: #10b981;
     box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
 }
 
@@ -298,7 +293,6 @@ body {
     flex-direction: row-reverse;
 }
 
-/* Scroll reveal: text and mockups rise in independently, mockups trailing slightly */
 .feature-row .feature-text {
     opacity: 0;
     transform: translateY(28px);
@@ -361,7 +355,7 @@ body {
 
 .carousel-viewport {
     overflow: hidden;
-    padding: 12px 0; /* Prevents card shadows from being clipped vertically */
+    padding: 12px 0;
     -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
     mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
 }
@@ -387,7 +381,6 @@ body {
     }
 }
 
-/* --- Upgraded Carousel Card Styles --- */
 .carousel-card {
     position: relative;
     flex: 0 0 auto;
@@ -396,22 +389,19 @@ body {
     border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: 20px;
     padding: 32px 28px;
-    
-    /* Layered ambient shadow for depth */
-    box-shadow: 
+    box-shadow:
         0 4px 12px rgba(0, 0, 0, 0.03),
         0 1px 2px rgba(0, 0, 0, 0.02);
-        
-    transition: 
-        transform 0.4s var(--ease-out), 
-        box-shadow 0.4s var(--ease-out), 
+
+    transition:
+        transform 0.4s var(--ease-out),
+        box-shadow 0.4s var(--ease-out),
         border-color 0.4s var(--ease-out);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
 }
 
-/* Accent top border highlight on hover */
 .carousel-card::before {
     content: "";
     position: absolute;
@@ -428,27 +418,13 @@ body {
 .carousel-card:hover {
     transform: translateY(-8px);
     border-color: rgba(0, 0, 0, 0.12);
-    box-shadow: 
+    box-shadow:
         0 20px 32px -8px rgba(0, 0, 0, 0.08),
         0 8px 16px -4px rgba(0, 0, 0, 0.04);
 }
 
 .carousel-card:hover::before {
     opacity: 1;
-}
-
-/* Optional Card Icon/Badge Container */
-.carousel-card-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background-color: var(--bg-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-    font-size: 20px;
-    color: var(--accent-black);
 }
 
 .carousel-card h3 {
@@ -533,11 +509,27 @@ body {
 
 /* --- Footer --- */
 .footer {
-    text-align: center;
-    padding: 40px 5%;
+    padding: 48px 5%;
     color: var(--text-muted);
     font-size: 14px;
     border-top: 1px solid #e0e0e0;
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 32px;
+}
+
+/* Left Section Stack */
+.footer-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
 }
 
 .github-btn {
@@ -551,7 +543,7 @@ body {
     border-radius: 8px;
     font-weight: 600;
     font-size: 14px;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
 }
 
@@ -564,9 +556,86 @@ body {
     transform: translateY(-1px) scale(0.98);
 }
 
+.footer-copy {
+    margin-bottom: 2px;
+}
+
+.footer-legal a {
+    color: var(--text-muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color 0.2s var(--ease-out);
+}
+
+.footer-legal a:hover {
+    color: var(--accent-black);
+}
+
+/* Right Section: Equal Horizons Attribution (no pill/card wrapper — logo sits directly on the footer) */
+.footer-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.footer-brand-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+.footer-brand-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.25s var(--ease-out);
+}
+
+.footer-brand-link:hover {
+    transform: translateY(-2px);
+}
+
+.footer-brand-banner {
+    height: 46px; /* Larger now that there's no pill container competing for space */
+    width: auto;
+    max-width: 280px;
+    object-fit: contain;
+    display: block;
+    mix-blend-mode: multiply; /* Drops the banner's own light background so it blends into the page */
+    opacity: 0.94;
+    transition: opacity 0.25s var(--ease-out);
+}
+
+.footer-brand-link:hover .footer-brand-banner {
+    opacity: 1;
+}
+
+/* Responsive Footer adjustment for mobile screens */
+@media (max-width: 768px) {
+    .footer-container {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .footer-left {
+        align-items: center;
+        text-align: center;
+    }
+
+    .footer-right {
+        align-items: center;
+        margin-top: 16px;
+    }
+}
+
 /* --- Responsive Design --- */
 @media (max-width: 992px) {
-    .feature-row, 
+    .feature-row,
     .feature-row.reverse {
         flex-direction: column;
         text-align: center;
@@ -605,16 +674,16 @@ body {
     }
 
     .mockup-placeholder {
-        width: 220px; /* Scales down uniformly on smaller screens */
+        width: 220px;
     }
-    
+
     .carousel-card {
         width: 280px;
         padding: 24px 20px;
     }
 }
 
-/* --- Motion preference --- */
+/* --- Motion Preference --- */
 @media (prefers-reduced-motion: reduce) {
     html {
         scroll-behavior: auto;
