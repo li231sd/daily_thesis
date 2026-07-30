@@ -61,6 +61,18 @@ class StreakService {
       );
     }
 
+    // Floor for how far back we're allowed to backfill. Prefer the
+    // explicit firstActiveDate (set at true first install); fall back to
+    // the earliest date already present in history for older/migrated
+    // data that predates this field. Without this floor, the very first
+    // time evaluateOnOpen() runs *after* a user's first completed day
+    // (e.g. a lifecycle resume later that same session), history is no
+    // longer empty, so the emptiness guard above no longer applies — and
+    // the loop below would otherwise "fill the gap" on days before the
+    // user ever opened the app, wrongly spending a freeze or recording a
+    // miss on a day that was never actually part of any streak.
+    final anchor = _earliestBound(s);
+
     DateTime check = today.subtract(const Duration(days: 1));
     final newHistory = Map<String, DayStatus>.from(s.history);
     var remainingFreezes = s.freezesAvailable;
@@ -75,7 +87,12 @@ class StreakService {
         break;
       }
 
-      // 2. Safety cap: Stop scanning if we go back further than 14 days 
+      // 2. Never backfill earlier than the user's first active day.
+      if (anchor != null && check.isBefore(anchor)) {
+        break;
+      }
+
+      // 3. Safety cap: Stop scanning if we go back further than 14 days 
       // to prevent infinite loops on orphaned/corrupted states
       if (today.difference(check).inDays > 14) {
         break;
@@ -110,6 +127,31 @@ class StreakService {
       freezesAvailable: s.freezesAvailable,
       previousStreak: previousStreak,
     );
+  }
+
+  /// Date-only floor before which evaluateOnOpen() must never write a
+  /// history entry: the user's recorded firstActiveDate, or (for data that
+  /// predates that field) the earliest date key already in history.
+  DateTime? _earliestBound(StreakData s) {
+    if (s.firstActiveDate != null) {
+      final d = s.firstActiveDate!;
+      return DateTime(d.year, d.month, d.day);
+    }
+    if (s.history.isEmpty) return null;
+    DateTime? earliest;
+    for (final key in s.history.keys) {
+      final parts = key.split('-');
+      if (parts.length != 3) continue;
+      final parsed = DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
+      if (earliest == null || parsed.isBefore(earliest)) {
+        earliest = parsed;
+      }
+    }
+    return earliest;
   }
 
   /// Records reading/activity completion for today.

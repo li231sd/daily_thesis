@@ -11,8 +11,12 @@ class StreakStorage {
 
     // No saved data at all — this is a first install. Start the user off
     // with 1 freeze so an early missed day doesn't immediately break a
-    // streak they've barely started.
-    if (raw == null) return const StreakData(freezesAvailable: 1);
+    // streak they've barely started, and record today as firstActiveDate
+    // so evaluateOnOpen() never treats a day before this as "missed" —
+    // there's nothing to have missed before the app ever existed for them.
+    if (raw == null) {
+      return StreakData(freezesAvailable: 1, firstActiveDate: DateTime.now());
+    }
 
     try {
       return StreakData.fromJson(jsonDecode(raw) as Map<String, dynamic>);

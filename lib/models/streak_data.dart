@@ -6,11 +6,19 @@ class StreakData {
   final int freezesAvailable;
   final List<int> milestonesReached;
 
+  /// The calendar day this user's streak data first came into existence
+  /// (set once, at true first install — see StreakStorage.load()). Used as
+  /// a floor so evaluateOnOpen()'s gap-filling loop can never backfill a
+  /// freeze/missed entry onto a day that existed before the user ever
+  /// opened the app.
+  final DateTime? firstActiveDate;
+
   const StreakData({
     this.history = const {},
     this.longestStreak = 0,
     this.freezesAvailable = 0,
     this.milestonesReached = const [],
+    this.firstActiveDate,
   });
 
   static String dateKey(DateTime date) {
@@ -60,12 +68,14 @@ class StreakData {
     int? longestStreak,
     int? freezesAvailable,
     List<int>? milestonesReached,
+    DateTime? firstActiveDate,
   }) {
     return StreakData(
       history: history ?? this.history,
       longestStreak: longestStreak ?? this.longestStreak,
       freezesAvailable: freezesAvailable ?? this.freezesAvailable,
       milestonesReached: milestonesReached ?? this.milestonesReached,
+      firstActiveDate: firstActiveDate ?? this.firstActiveDate,
     );
   }
 
@@ -75,6 +85,7 @@ class StreakData {
       'longestStreak': longestStreak,
       'freezesAvailable': freezesAvailable,
       'milestonesReached': milestonesReached,
+      'firstActiveDate': firstActiveDate?.toIso8601String(),
     };
   }
 
@@ -90,6 +101,9 @@ class StreakData {
               ?.map((e) => e as int)
               .toList() ??
           const [],
+      firstActiveDate: json['firstActiveDate'] != null
+          ? DateTime.tryParse(json['firstActiveDate'] as String)
+          : null,
     );
   }
 }
