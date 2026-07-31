@@ -115,10 +115,10 @@
             Build a Reading Habit <span class="new-flag">New in v3.1.0</span>
           </h2>
           <p>
-            Read your daily paper and keep the streak alive. Daily Thesis
-            tracks your progress day by day, celebrates the milestones, and
-            gives you the occasional freeze so one busy day doesn't cost you
-            all your momentum.
+            Read your daily paper and keep the streak alive. Daily Thesis tracks
+            your progress day by day, celebrates the milestones, and gives you
+            the occasional freeze so one busy day doesn't cost you all your
+            momentum.
           </p>
         </div>
         <div class="mockup-group">
@@ -135,7 +135,8 @@
       <div class="feature-row">
         <div class="feature-text">
           <h2>
-            Never Get Lost In The Literature <span class="new-flag">New in v3.0.0</span>
+            Never Get Lost In The Literature
+            <span class="new-flag">New in v3.0.0</span>
           </h2>
           <p>
             Tap "New to this field?" on any paper and Daily Thesis unpacks it
@@ -188,7 +189,9 @@
           </div>
         </div>
         <div class="feature-text">
-          <h2>Frictionless Reading, One-Tap Actions, & Source Transparency</h2>
+          <h2>
+            Frictionless Reading, One-Tap Actions, &amp; Source Transparency
+          </h2>
           <p>
             Enjoy clean paper summaries in both light and dark themes. Read full
             publications, skip irrelevant papers, generate instant citations,
@@ -209,7 +212,7 @@
           </div>
         </div>
         <div class="feature-text">
-          <h2>Total Control & Reading History</h2>
+          <h2>Total Control &amp; Reading History</h2>
           <p>
             Customize your text sizing and appearance preferences whenever you
             want. Easily revisit past papers and recommendations with built-in
@@ -389,17 +392,19 @@
             </svg>
             Contribute on GitHub
           </a>
-          <p class="footer-copy">
-            &copy; 2026 Daily Thesis. All rights reserved.
-          </p>
-          <p class="footer-legal">
-            <a
-              href="https://li231sd.github.io/daily_thesis/privacy-policy.html"
-              target="_blank"
-              rel="noopener"
-              >Privacy Policy</a
-            >
-          </p>
+          <div class="footer-meta">
+            <p class="footer-copy">
+              &copy; 2026 Daily Thesis. All rights reserved.
+            </p>
+            <p class="footer-legal">
+              <a
+                href="https://li231sd.github.io/daily_thesis/privacy-policy.html"
+                target="_blank"
+                rel="noopener"
+                >Privacy Policy</a
+              >
+            </p>
+          </div>
         </div>
 
         <!-- Right Side: Equal Horizons attribution -->
@@ -412,11 +417,23 @@
             class="footer-brand-link"
             aria-label="Equal Horizons"
           >
-            <img
-              src="assets/Banner.png"
-              alt="Equal Horizons"
+            <!--
+              Canvas renders the logo with its cream background
+              color-keyed out to transparent — see script below.
+              Falls back to the plain <img> if canvas/JS isn't available.
+            -->
+            <canvas
+              id="footerBrandLogo"
               class="footer-brand-banner"
-            />
+              aria-hidden="true"
+            ></canvas>
+            <noscript>
+              <img
+                src="assets/Banner.png"
+                alt="Equal Horizons"
+                class="footer-brand-banner-fallback"
+              />
+            </noscript>
           </a>
         </div>
       </div>
@@ -454,6 +471,68 @@
       } else {
         rows.forEach((row) => row.classList.add("in-view"));
       }
+
+      // Strip the Equal Horizons logo's solid cream background at render
+      // time, so it sits cleanly on the footer without a boxed-in look.
+      // If this ever fails (image load error, canvas unsupported), the
+      // <canvas> just stays empty — the footer-brand-label text still
+      // shows and the link still works.
+      (function renderFooterBrandLogo() {
+        const canvas = document.getElementById("footerBrandLogo");
+        if (!canvas || !canvas.getContext) return;
+
+        const ctx = canvas.getContext("2d");
+        const img = new Image();
+        img.src = "assets/Banner.png";
+
+        img.onload = () => {
+          const off = document.createElement("canvas");
+          off.width = img.naturalWidth;
+          off.height = img.naturalHeight;
+          const offCtx = off.getContext("2d");
+          offCtx.drawImage(img, 0, 0);
+
+          let data;
+          try {
+            data = offCtx.getImageData(0, 0, off.width, off.height);
+          } catch (e) {
+            // Likely a CORS/tainted-canvas issue if the image is served
+            // cross-origin without proper headers — bail out quietly and
+            // let the plain image show via noscript/fallback instead.
+            return;
+          }
+
+          const px = data.data;
+          // Sample the background color from the top-left corner pixel.
+          const bg = [px[0], px[1], px[2]];
+          const tolerance = 28; // raise/lower if edges look rough
+
+          for (let i = 0; i < px.length; i += 4) {
+            const dr = px[i] - bg[0];
+            const dg = px[i + 1] - bg[1];
+            const db = px[i + 2] - bg[2];
+            if (Math.sqrt(dr * dr + dg * dg + db * db) < tolerance) {
+              px[i + 3] = 0; // make it transparent
+            }
+          }
+          offCtx.putImageData(data, 0, 0);
+
+          // Scale onto the visible canvas at a legible display height.
+          const targetHeight = 40;
+          const scale = targetHeight / img.naturalHeight;
+          const displayWidth = img.naturalWidth * scale;
+
+          // Account for device pixel ratio so it stays crisp on retina.
+          const dpr = window.devicePixelRatio || 1;
+          canvas.width = displayWidth * dpr;
+          canvas.height = targetHeight * dpr;
+          canvas.style.width = displayWidth + "px";
+          canvas.style.height = targetHeight + "px";
+
+          ctx.scale(dpr, dpr);
+          ctx.drawImage(off, 0, 0, displayWidth, targetHeight);
+        };
+      })();
     </script>
   </body>
 </html>

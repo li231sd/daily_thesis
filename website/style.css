@@ -111,19 +111,6 @@ body {
     animation-delay: 0.28s;
 }
 
-.hero-sources {
-    font-size: 14px;
-    color: var(--text-muted);
-    max-width: 440px;
-    margin-bottom: 32px;
-    padding-left: 14px;
-    border-left: 2px solid #d8d5cf;
-    opacity: 0;
-    transform: translateY(24px);
-    animation: rise 0.8s var(--ease-out) forwards;
-    animation-delay: 0.36s;
-}
-
 .hero-microcopy {
     font-size: 14px;
     color: var(--text-muted);
@@ -509,7 +496,7 @@ body {
 
 /* --- Footer --- */
 .footer {
-    padding: 48px 5%;
+    padding: 48px 5% 56px;
     color: var(--text-muted);
     font-size: 14px;
     border-top: 1px solid #e0e0e0;
@@ -519,16 +506,18 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    gap: 32px;
+    row-gap: 28px;
+    column-gap: 32px;
 }
 
-/* Left Section Stack */
 .footer-left {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
     text-align: left;
 }
 
@@ -543,7 +532,6 @@ body {
     border-radius: 8px;
     font-weight: 600;
     font-size: 14px;
-    margin-bottom: 12px;
     transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
 }
 
@@ -556,8 +544,10 @@ body {
     transform: translateY(-1px) scale(0.98);
 }
 
-.footer-copy {
-    margin-bottom: 2px;
+.footer-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .footer-legal a {
@@ -571,12 +561,11 @@ body {
     color: var(--accent-black);
 }
 
-/* Right Section: Equal Horizons Attribution (no pill/card wrapper — logo sits directly on the footer) */
 .footer-right {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
     gap: 10px;
+    flex-shrink: 0;
 }
 
 .footer-brand-label {
@@ -586,54 +575,42 @@ body {
     text-transform: uppercase;
     color: var(--text-muted);
     opacity: 0.7;
+    white-space: nowrap;
 }
 
 .footer-brand-link {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    transition: transform 0.25s var(--ease-out);
-}
-
-.footer-brand-link:hover {
-    transform: translateY(-2px);
-}
-
-.footer-brand-banner {
-    height: 46px; /* Larger now that there's no pill container competing for space */
-    width: auto;
-    max-width: 280px;
-    object-fit: contain;
-    display: block;
-    mix-blend-mode: multiply; /* Drops the banner's own light background so it blends into the page */
-    opacity: 0.94;
+    min-height: 40px;
     transition: opacity 0.25s var(--ease-out);
 }
 
-.footer-brand-link:hover .footer-brand-banner {
-    opacity: 1;
+.footer-brand-link:hover {
+    opacity: 0.75;
 }
 
-/* Responsive Footer adjustment for mobile screens */
-@media (max-width: 768px) {
-    .footer-container {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-
-    .footer-left {
-        align-items: center;
-        text-align: center;
-    }
-
-    .footer-right {
-        align-items: center;
-        margin-top: 16px;
-    }
+/* Canvas takes its on-screen size from JS (devicePixelRatio-aware),
+   this is just a sane baseline before the script runs. */
+.footer-brand-banner {
+    display: block;
+    height: 40px;
+    width: auto;
 }
 
-/* --- Responsive Design --- */
+/* Fallback if JS is disabled — shown via <noscript>, so the raw PNG
+   (cream background and all) is better than nothing. */
+.footer-brand-banner-fallback {
+    height: 40px;
+    width: auto;
+    max-width: 220px;
+    object-fit: contain;
+    display: block;
+}
+
+/* ========================================= */
+/* --- Enhanced Responsive Design Section --- */
+/* ========================================= */
+
 @media (max-width: 992px) {
     .feature-row,
     .feature-row.reverse {
@@ -649,17 +626,17 @@ body {
     }
 
     .hero-subtitle {
-        margin: 0 auto 40px auto;
+        margin: 0 auto 30px auto;
+    }
+
+    /* Keep microcopy centered when stacking into a column */
+    .hero-microcopy {
+        margin: 14px auto 0 auto;
+        text-align: center;
     }
 
     .app-buttons {
         justify-content: center;
-    }
-
-    .hero-sources {
-        margin-left: auto;
-        margin-right: auto;
-        text-align: left;
     }
 
     .steps {
@@ -668,18 +645,91 @@ body {
     }
 }
 
+@media (max-width: 768px) {
+    /* Significantly reduce massive padding & whitespace on mobile */
+    .features {
+        padding: 60px 5%;
+    }
+
+    .feature-row,
+    .feature-row.reverse {
+        margin-bottom: 60px;
+    }
+
+    .extra-features {
+        padding: 50px 0 60px;
+    }
+
+    .how-it-works {
+        padding: 60px 5%;
+    }
+
+    .hero {
+        padding: 50px 5%;
+    }
+
+    /* Stack footer blocks neatly, centered */
+    .footer-container {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .footer-left {
+        align-items: center;
+        text-align: center;
+    }
+}
+
 @media (max-width: 576px) {
+    .navbar {
+        padding: 16px 5%;
+    }
+
+    /* Tame the typography so long words don't overflow */
     .hero-title {
-        font-size: 36px;
+        font-size: 32px;
     }
 
+    .feature-text h2 {
+        font-size: 26px;
+    }
+
+    .extra-heading, .how-heading {
+        font-size: 26px;
+    }
+
+    /* Scale mockups so two can stack without blowing out vertical real estate */
     .mockup-placeholder {
-        width: 220px;
+        width: 180px; 
+    }
+    
+    .mockup-group {
+        gap: 16px;
     }
 
+    /* Tighten carousel width for better screen real estate usage */
     .carousel-card {
-        width: 280px;
+        width: 260px;
         padding: 24px 20px;
+    }
+
+    /* Create massive touch-friendly full-width buttons on mobile */
+    .app-buttons {
+        width: 100%;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .store-btn {
+        width: 100%;
+    }
+    
+    /* Make sure inline flags stay positioned correctly when headers wrap */
+    .new-flag {
+        display: inline-flex;
+        margin-left: 8px;
+        top: -1px;
     }
 }
 
@@ -691,7 +741,6 @@ body {
 
     .hero-title,
     .hero-subtitle,
-    .hero-sources,
     .hero-microcopy,
     .app-buttons,
     .hero-image,
