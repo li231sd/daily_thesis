@@ -97,25 +97,19 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     await _fadeCtrl.reverse();
     if (!mounted) return;
 
-    setState(() => _step = _Step.done);
-    _fadeCtrl.forward();
-
     final interests = _selectedInterests.toList();
     final matchedSubjects = InterestMatcher.subjectsForSelections(interests);
 
-    await Future.wait([
-      _storage.save(UserProfile(
-        name: _nameController.text.trim(),
-        interests: interests,
-        matchedSubjects: matchedSubjects,
-      )),
-      Future.delayed(const Duration(milliseconds: 1200)),
-    ]);
+    await _storage.save(UserProfile(
+      name: _nameController.text.trim(),
+      interests: interests,
+      matchedSubjects: matchedSubjects,
+    ));
 
     if (!mounted) return;
 
-    // Dedicated full-screen streak explainer, shown once right after
-    // onboarding and before the user reaches the main paper feed.
+    // Dedicated full-screen streak explainer, shown before the final
+    // onboarding completion state and before the main paper feed.
     await Navigator.of(context).push(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => StreakIntroScreen(
@@ -140,6 +134,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       ),
     );
 
+    if (!mounted) return;
+    setState(() => _step = _Step.done);
+    await _fadeCtrl.forward(from: 0);
+    await Future.delayed(const Duration(milliseconds: 1200));
     if (!mounted) return;
     widget.onComplete();
   }
