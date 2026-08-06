@@ -1,11 +1,29 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/paper.dart';
+import 'clock_skew.dart';
 import 'interest_matcher.dart';
 
 class PaperService {
   static const String _workerUrl =
       'https://quiet-bread-7971.li231sdyt.workers.dev/';
+
+  /// Wraps every outbound request. If the underlying request fails at the
+  /// TLS layer (HandshakeException, CertificateException — both are
+  /// TlsException subtypes), checks whether that's attributable to clock
+  /// skew before surfacing it, so the UI can show an actionable message
+  /// instead of a raw handshake error.
+  Future<http.Response> _get(Uri uri) async {
+    try {
+      return await http.get(uri).timeout(const Duration(seconds: 20));
+    } on TlsException {
+      if (await ClockSkewDetector.isClockLikelySkewed()) {
+        throw const ClockSkewException();
+      }
+      rethrow;
+    }
+  }
 
   /// Fetches today's paper. If the user has multiple matched subjects,
   /// rotates deterministically through them by day (see
@@ -33,7 +51,7 @@ class PaperService {
         ? Uri.parse('$_workerUrl?subject=$subject')
         : Uri.parse(_workerUrl);
 
-    final response = await http.get(uri).timeout(const Duration(seconds: 20));
+    final response = await _get(uri);
 
     if (response.statusCode != 200) {
       throw Exception('Server returned ${response.statusCode}');
@@ -79,7 +97,7 @@ class PaperService {
     Set<String> excludeUrls = const {},
   }) async {
     final uri = Uri.parse('$_workerUrl?subject=$subject');
-    final response = await http.get(uri).timeout(const Duration(seconds: 20));
+    final response = await _get(uri);
 
     if (response.statusCode != 200) {
       throw Exception('Server returned ${response.statusCode}');
@@ -125,7 +143,7 @@ class PaperService {
     Set<String> excludeUrls = const {},
   }) async {
     final uri = Uri.parse('$_workerUrl?subject=$subject');
-    final response = await http.get(uri).timeout(const Duration(seconds: 20));
+    final response = await _get(uri);
 
     if (response.statusCode != 200) {
       throw Exception('Server returned ${response.statusCode}');

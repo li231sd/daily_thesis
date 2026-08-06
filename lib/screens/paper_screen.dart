@@ -17,6 +17,7 @@ import '../services/paper_history_storage.dart';
 import '../services/paper_service.dart';
 import '../services/profile_storage.dart';
 import '../services/streak_service.dart';
+import '../services/clock_skew.dart';
 import '../widgets/shimmer_loader.dart';
 import '../widgets/reveal.dart';
 import '../widgets/press_button.dart';
@@ -346,6 +347,14 @@ class _PaperScreenState extends State<PaperScreen>
       });
       _markLoadedToday();
       unawaited(_refillBuffer());
+    } on ClockSkewException {
+      if (await _tryServeFromBuffer()) return;
+      _setErrorState(
+        'Date & Time Incorrect',
+        'Your device date and time appear to be set incorrectly, which is '
+            'blocking secure connections. Please turn on automatic date & '
+            'time in your device Settings, then try again.',
+      );
     } on Exception catch (e) {
       if (await _tryServeFromBuffer()) return;
       _setErrorState('Connection Error', e.toString());
@@ -414,6 +423,14 @@ class _PaperScreenState extends State<PaperScreen>
       });
       _markLoadedToday();
       unawaited(_refillBuffer());
+    } on ClockSkewException {
+      if (await _tryServeFromBuffer()) return;
+      _setErrorState(
+        'Date & Time Incorrect',
+        'Your device date and time appear to be set incorrectly, which is '
+            'blocking secure connections. Please turn on automatic date & '
+            'time in your device Settings, then try again.',
+      );
     } on Exception catch (e) {
       if (await _tryServeFromBuffer()) return;
       _setErrorState('Connection Error', e.toString());

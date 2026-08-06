@@ -79,6 +79,14 @@ class StreakService {
     bool freezeConsumed = false;
     bool streakBroken = false;
 
+    // Only the single most recent unrecorded day is eligible for freeze
+    // protection. Without this, a user with 2 banked freezes who ignores
+    // the app for 2 days gets BOTH days silently frozen — no day is ever
+    // marked missed, streakBroken never fires, and currentStreak walks
+    // straight through the frozen days as if nothing happened. Freezes
+    // are meant to forgive a single slip, not mask a multi-day absence.
+    bool isFirstGapDay = true;
+
     while (true) {
       final key = StreakData.dateKey(check);
 
@@ -92,14 +100,14 @@ class StreakService {
         break;
       }
 
-      // 3. Safety cap: Stop scanning if we go back further than 14 days 
+      // 3. Safety cap: Stop scanning if we go back further than 14 days
       // to prevent infinite loops on orphaned/corrupted states
       if (today.difference(check).inDays > 14) {
         break;
       }
 
       // Handle missing day
-      if (remainingFreezes > 0) {
+      if (isFirstGapDay && remainingFreezes > 0) {
         newHistory[key] = DayStatus.frozen;
         remainingFreezes--;
         freezeConsumed = true;
@@ -107,6 +115,7 @@ class StreakService {
         newHistory[key] = DayStatus.missed;
         streakBroken = true;
       }
+      isFirstGapDay = false;
 
       check = check.subtract(const Duration(days: 1));
     }
